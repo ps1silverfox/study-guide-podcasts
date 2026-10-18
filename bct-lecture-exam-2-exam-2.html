@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BCT Exam 2 Podcast</title>
+<style>
+/* Two-host TTS podcast player; single-theme dark by design (matches the series). */
+:root { color-scheme: dark; --bg:#0f172a; --card:#1e293b; --card-hi:#334155; --ink:#f8fafc; --ink-soft:#94a3b8; --accent:#38bdf8; --accent2:#34d399; --btn:#0284c7; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); max-width: 800px; margin: 0 auto; padding-inline: 16px; padding-block: 24px; line-height: 1.6; box-sizing: border-box; }
+.player-card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 30px; border: 1px solid var(--card-hi); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+h1 { margin-top: 0; color: var(--accent); font-size: 24px; }
+.controls { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+button { background: var(--btn); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+button:hover { background: #0369a1; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .player-card { padding: 16px; } h1 { font-size: 20px; } .status { margin-left: 0; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .line { transition: none; } .line.active { transform: none; } }
+button.secondary { background: #475569; }
+.status { margin-left: auto; color: var(--ink-soft); font-size: 14px; }
+.settings { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 18px; align-items: center; font-size: 14px; color: #cbd5e1; }
+select, input[type=range] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--card-hi); border-radius: 6px; padding: 6px; }
+.hint { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.line { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: var(--card); border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+.line:hover { background: #26354d; }
+.line.active { background: var(--card-hi); border-left-color: var(--accent); transform: scale(1.01); }
+.speaker { font-weight: 700; color: var(--accent); margin-right: 8px; }
+.speaker.sam { color: var(--accent2); }
+</style>
+</head>
+<body>
+<a id="backNav" href="./" style="display:inline-block;margin-bottom:14px;color:#38bdf8;text-decoration:none;font-weight:600">&larr; All episodes</a>
+<div class="player-card">
+<h1>🎙️ BCT Exam 2 Podcast</h1>
+<p>Two-Host Audio Review: Blood, Matrix &amp; Bone, Muscle &amp; Nervous Tissue</p>
+<div id="audioWrap" hidden>
+<audio id="epAudio" controls preload="metadata" src="bct-lecture-exam-2-exam-2.mp4" style="width:100%"></audio>
+<div class="hint">Studio recording — real voices, keeps playing with the screen off. The buttons below use your phone's built-in voices instead.</div>
+</div>
+<div class="controls">
+<button id="playBtn" onclick="startPodcast()">▶ Play Full Podcast</button>
+<button class="secondary" onclick="pauseResumePodcast()">⏸ Pause / Resume</button>
+<button class="secondary" onclick="stopPodcast()">⏹ Stop</button>
+<span class="status" id="statusText">Ready to play</span>
+</div>
+<div class="settings">
+<label for="alexVoice">Alex voice</label><select id="alexVoice"></select>
+<label for="samVoice">Sam voice</label><select id="samVoice"></select>
+<label for="rate">Speed <span id="rateVal">1.0×</span></label><input type="range" id="rate" min="0.8" max="1.3" step="0.05" value="1.0">
+</div>
+<div class="hint" id="voiceHint"></div>
+</div>
+<div id="transcript"></div>
+
+<script>
+const script = [
+{ s: "Alex", t: "Welcome back! Today is the big one: BCT Exam Two. Blood, matrix and bone, muscle and nervous tissue. I'm Alex." },
+{ s: "Sam", t: "And I'm Sam, and yeah, this is three lectures in one exam, so buckle up. Where do we start?" },
+{ s: "Alex", t: "Blood. First trick question of the day: is blood a tissue?" },
+{ s: "Sam", t: "It is! It's the only fluid tissue in the body, and it's a connective tissue. Which sounds weird until you remember the connective tissue recipe: cells sitting in a matrix." },
+{ s: "Alex", t: "Right, and in blood the matrix is just... liquid. Plasma. Non-living. The living part is the formed elements." },
+{ s: "Sam", t: "Quick functions check. I'll say a job, you tell me if blood does it. Delivering oxygen and nutrients?" },
+{ s: "Alex", t: "Obviously yes." },
+{ s: "Sam", t: "Carrying wastes to the lungs and kidneys? Hormones to their targets?" },
+{ s: "Alex", t: "Yes and yes. And the ones people forget: temperature regulation, osmotic pressure, clotting to prevent hemorrhage, and defense through white cells. Seven jobs." },
+{ s: "Sam", t: "Okay, embryology curveball, because this course loves those. Where do blood cells come from?" },
+{ s: "Alex", t: "Mesenchyme. Same embryonic tissue that gives you fibroblasts, chondroblasts and osteoblasts. For blood, mesenchyme makes hematopoietic stem cells, and those live mostly in bone marrow." },
+{ s: "Sam", t: "Now spin a tube of blood in a centrifuge. What do you see?" },
+{ s: "Alex", t: "Three layers. Red cells sink, about 45 percent. Plasma floats, about 55. And squeezed between them is that thin whitish layer..." },
+{ s: "Sam", t: "The buffy coat! White cells and platelets, less than one percent. Best-named structure on the exam." },
+{ s: "Alex", t: "And that 45 percent number has a name: the hematocrit, the percent of blood volume that's red cells. Males 47 plus or minus 5, females 42 plus or minus 5." },
+{ s: "Sam", t: "Let's zoom into plasma. Ninety percent water. The interesting eight percent is plasma proteins. Hit me with the big three." },
+{ s: "Alex", t: "Albumin, globulins, fibrinogen. Albumin is sixty percent of the proteins, made by the liver, and it's the main thing holding osmotic pressure, keeping water in the vessels." },
+{ s: "Sam", t: "Globulins?" },
+{ s: "Alex", t: "Thirty-six percent. Alpha and beta are transport proteins from the liver. Gamma globulins are different: those are antibodies, made by plasma cells." },
+{ s: "Sam", t: "And fibrinogen, four percent, liver again, and it becomes the fibrin threads of a clot. I like the river picture: water is the river, albumin keeps the water in the channel, globulins are cargo boats, fibrinogen is the leak repair kit." },
+{ s: "Alex", t: "Onto formed elements. Here's one that trips everyone: which formed element is a complete cell?" },
+{ s: "Sam", t: "Only the white cells! Red cells have no nucleus and basically no organelles, and platelets aren't even cells, they're fragments." },
+{ s: "Alex", t: "So describe the red cell for me. Sell me on it." },
+{ s: "Sam", t: "It's a tiny biconcave disc, about seven and a half micrometers, stuffed with hemoglobin, 97 percent of the cell volume. The biconcave shape gives huge surface area for gas exchange. Four to six million per microliter, each living about 120 days." },
+{ s: "Alex", t: "And two sneaky structure-function points. No mitochondria, so it makes ATP anaerobically, which means..." },
+{ s: "Sam", t: "It doesn't burn the oxygen it's carrying! The delivery truck doesn't eat the cargo." },
+{ s: "Alex", t: "And spectrin, the membrane protein that makes the cell flexible enough to fold through capillaries narrower than itself." },
+{ s: "Sam", t: "Hemoglobin itself: red heme pigment plus the protein globin. Normal values, males 13 to 18 grams per 100 milliliters, females 12 to 16. Now the three combos. Quiz me." },
+{ s: "Alex", t: "Hemoglobin plus oxygen?" },
+{ s: "Sam", t: "Oxyhemoglobin. Reversible." },
+{ s: "Alex", t: "Plus carbon dioxide?" },
+{ s: "Sam", t: "Carbaminohemoglobin. Also reversible." },
+{ s: "Alex", t: "Plus carbon monoxide?" },
+{ s: "Sam", t: "Carboxyhemoglobin, and that one is irreversible. That's the whole danger of CO: it's gum in the keyhole. That hemoglobin is done carrying oxygen, forever." },
+{ s: "Alex", t: "One disease to know: sickle cell. A single nucleotide change in the hemoglobin gene. The protein polymerizes into rigid rods, cells go stiff and misshapen, blood gets viscous, and microcirculation suffers." },
+{ s: "Sam", t: "One letter of DNA. Wild. Okay, white cells. Give me the headline facts." },
+{ s: "Alex", t: "Only complete cell, less than one percent of blood volume, 4800 to 10,800 per microliter. They squeeze out of capillaries, that's diapedesis, and crawl through tissue following chemical trails, chemotaxis. Over 11,000 is leukocytosis, a normal response to infection." },
+{ s: "Sam", t: "And the famous mnemonic for abundance, most to least: Never Let Monkeys Eat Bananas." },
+{ s: "Alex", t: "Neutrophil, Lymphocyte, Monocyte, Eosinophil, Basophil. Let's rapid-fire them. Neutrophil." },
+{ s: "Sam", t: "50 to 70 percent, nucleus with three to six lobes, so it's called polymorphonuclear. It phagocytizes bacteria. Granules carry hydrolytic enzymes, defensins, lysozyme." },
+{ s: "Alex", t: "Eosinophil." },
+{ s: "Sam", t: "2 to 4 percent, two lobes like earmuffs, red granules. Attacks parasitic worms with major basic protein, and shows up in allergies." },
+{ s: "Alex", t: "Basophil." },
+{ s: "Sam", t: "Rarest, half to one percent. The nucleus is there, you just can't see it under those dark purple granules. Releases histamine, a vasodilator that calls in other white cells, plus heparin. Basically the blood version of a mast cell." },
+{ s: "Alex", t: "Lymphocyte." },
+{ s: "Sam", t: "About 25 percent. Big dark round nucleus with a thin rim of blue cytoplasm. T cells attack virus-infected and tumor cells directly; B cells become plasma cells and pump out antibodies." },
+{ s: "Alex", t: "And monocyte." },
+{ s: "Sam", t: "3 to 8 percent, the largest white cell, with that U-shaped or kidney-shaped nucleus. It leaves the blood, enters tissue, and transforms into a macrophage. Viruses, intracellular bacteria, chronic infections." },
+{ s: "Alex", t: "Granulocyte versus agranulocyte, just to lock it: neutrophil, eosinophil, basophil have visible granules. Lymphocyte and monocyte don't." },
+{ s: "Sam", t: "Last stop in blood: platelets. Not cells, fragments. Fragments of what, Alex?" },
+{ s: "Alex", t: "Megakaryocytes, giant cells in the marrow. Platelets carry clotting chemicals, serotonin, calcium, ADP, and they form the temporary platelet plug. Normal count 150,000 to 400,000." },
+{ s: "Sam", t: "And the finale of clotting: fibrinogen becomes fibrin, a mesh that traps blood cells. That's the clot." },
+{ s: "Alex", t: "Unit two: extracellular matrix and bone. Sam, what even is the ECM?" },
+{ s: "Sam", t: "Everything between the cells. It's a reservoir for water, ions, nutrients and signals; it gives tissue its strength and shape; and it's the medium nutrients and wastes diffuse through." },
+{ s: "Alex", t: "Three ingredient groups. Structural proteins, collagens and elastins. Proteoglycans, that's a core protein wearing GAG chains. And adhesive glycoproteins, fibronectin, laminin, integrins." },
+{ s: "Sam", t: "Wait, back up, GAGs. Glycosaminoglycans. Why do they hold so much water?" },
+{ s: "Alex", t: "They're long sugar chains loaded with sulfate and carboxyl groups, so they're negatively charged and hydrophilic. They soak up water like a sponge, and that hydrated gel is the ground substance." },
+{ s: "Sam", t: "And the exam loves this exception: every GAG links to a core protein to make a proteoglycan except..." },
+{ s: "Alex", t: "Hyaluronic acid. No protein. The lone wolf." },
+{ s: "Sam", t: "Collagen time. Most abundant ECM protein, high tensile strength, secreted by fibroblasts. And there's a name change on the way out of the cell, right?" },
+{ s: "Alex", t: "Inside the cell it's soluble procollagen, a triple helix. After secretion it's trimmed into insoluble tropocollagen, which self-assembles into fibrils, then fibers." },
+{ s: "Sam", t: "Four types to know. I'll do evens, you do odds. Type one?" },
+{ s: "Alex", t: "Everywhere, the biggest fibers. Skin, bone, tendon." },
+{ s: "Sam", t: "Type two: cartilage, hyaline and elastic, fibrils only, never big fibers." },
+{ s: "Alex", t: "Type three: reticular. Super thin fibers in loose networks, they stain with silver, so argyrophilic, and they build the scaffolding of lymph nodes and spleen." },
+{ s: "Sam", t: "Type four: no fibers at all. It forms a meshwork sheet in the basal lamina." },
+{ s: "Alex", t: "Elastic fibers, quick one: elastin with cross-linked peptides, stretch and recoil." },
+{ s: "Sam", t: "Now the glue molecules. Fibronectin binds cells to the matrix, guides migrating cells, and its magic cell-binding sequence is RGD. Laminin is made by epithelial cells and sticks them to the basal lamina." },
+{ s: "Alex", t: "And integrins are the receivers: cell-surface receptors that grab fibronectin, laminin or collagen outside, and link to the cytoskeleton inside. They're the bolts connecting the cell's frame to the building." },
+{ s: "Sam", t: "Basal lamina wrap-up: specialized ECM sheet under every epithelium. Contents?" },
+{ s: "Alex", t: "Type four collagen plus laminin. Structural support and a permeability barrier." },
+{ s: "Sam", t: "Bone. Deep breath. Five functions, go." },
+{ s: "Alex", t: "Support, protection, movement as levers for muscles, mineral storage for calcium and phosphorus, and blood cell formation, hematopoiesis, in red marrow." },
+{ s: "Sam", t: "Shapes: long like limb bones, short like wrist and ankle, flat like sternum, ribs, scapulae, skull, irregular like vertebrae and hip bones. Plus two specials people forget." },
+{ s: "Alex", t: "Sesamoid bones form inside tendons, the patella is the star example. And Wormian or sutural bones are little extras sitting in skull sutures." },
+{ s: "Sam", t: "Gross anatomy of a long bone. I always mixed up diaphysis and epiphysis, so here's my fix: diaphysis has 'shaft' energy, D for the long middle. Epiphyses are the Ends, E for ends." },
+{ s: "Alex", t: "Diaphysis is compact bone around a medullary cavity, yellow marrow in adults. Epiphyses are compact outside, spongy inside, covered at the joint by articular cartilage, which is hyaline. And the epiphyseal line is the scar of the childhood growth plate." },
+{ s: "Sam", t: "Two membranes, and the exam will ask. Periosteum?" },
+{ s: "Alex", t: "Outside. Double-layered: outer fibrous layer anchored by Sharpey's fibers, inner osteogenic layer with stem cells. Has nerves and vessels, anchors tendons and ligaments. Not present at joint surfaces." },
+{ s: "Sam", t: "Endosteum: the delicate lining of all the internal surfaces, the trabeculae and canals, also with osteogenic cells. Outside coat, inside lining." },
+{ s: "Alex", t: "Marrow lightning round: newborns, all marrow is red. Adults keep red marrow in spongy bone, femur and humerus heads, and the busiest sites are the diploe of flat bones and the hip. And if you become anemic?" },
+{ s: "Sam", t: "Yellow marrow can convert back to red. Emergency factory restart." },
+{ s: "Alex", t: "Four bone cells. This is pure exam gold. Osteogenic cells?" },
+{ s: "Sam", t: "Stem cells in the periosteum and endosteum. They become osteoblasts." },
+{ s: "Alex", t: "Osteoblasts?" },
+{ s: "Sam", t: "Builders. B for build. They secrete osteoid, the organic matrix, type one collagen plus ground substance, and kick off mineralization." },
+{ s: "Alex", t: "Osteocytes?" },
+{ s: "Sam", t: "The retired builders. Mature cells trapped in lacunae. But they're not idle: they sense stress and strain and tell the blasts and clasts what to do. Middle management." },
+{ s: "Alex", t: "And osteoclasts?" },
+{ s: "Sam", t: "Demolition crew. Giant multinucleate cells, and here's the twist: they come from the same stem cells as macrophages, not the bone lineage. They dig pits called Howship's lacunae, and the ruffled border multiplies the surface for their enzymes." },
+{ s: "Alex", t: "Now compact bone architecture. The unit is the osteon, or Haversian system: a weight-bearing cylinder running parallel to the long axis of the bone." },
+{ s: "Sam", t: "Each osteon is rings of matrix, lamellae, and the collagen in neighboring rings runs in different directions. Why do I care?" },
+{ s: "Alex", t: "Torsion. Alternating fiber directions resist twisting, like plywood." },
+{ s: "Sam", t: "Canal check. Central or Haversian canal?" },
+{ s: "Alex", t: "Core of the osteon, carries vessels and nerves." },
+{ s: "Sam", t: "Perforating, also called Volkmann's canals?" },
+{ s: "Alex", t: "Right angles to the central canals, connecting periosteum, medullary cavity and central canals. The cross-streets." },
+{ s: "Sam", t: "Lacunae hold osteocytes, and canaliculi are the hairline channels connecting lacuna to lacuna to canal, the nutrient relay. Then interstitial lamellae fill the gaps between osteons, old osteon remnants, and circumferential lamellae wrap the whole diaphysis just under the periosteum." },
+{ s: "Alex", t: "Spongy bone: no osteons. The trabeculae look random but they align exactly along lines of stress, like the cables of a suspension bridge." },
+{ s: "Sam", t: "And the matrix recipe that makes bone bone: organic osteoid gives tensile strength and flexibility; inorganic calcium hydroxyapatite, about half the dry weight, gives hardness. Collagen is the steel rebar, mineral is the concrete." },
+{ s: "Alex", t: "Development. Ossification starts in month two of development. Two routes, and the names matter. Endochondral starts from a hyaline cartilage model and builds most of the skeleton." },
+{ s: "Sam", t: "Intramembranous starts from a fibrous membrane made by mesenchymal cells, and it builds membrane bones: frontal, parietal, parts of the occipital, temporal and clavicle. Basically the skull flat-pack." },
+{ s: "Alex", t: "Either way, the first bone laid down is woven bone, messy collagen, less mineral, more osteocytes, later remodeled into mature bone." },
+{ s: "Sam", t: "Growth plate zones. Five of them, in order, and yes, you need the order. Resting, proliferation, hypertrophic, calcification, ossification." },
+{ s: "Alex", t: "Walk me through it like I'm the cartilage." },
+{ s: "Sam", t: "You start quiet in the resting zone. In proliferation you divide like crazy, and the new cells push the epiphysis away, that's the actual lengthening. In hypertrophic you swell up and your lacunae erode. In calcification the matrix around you calcifies and, sorry, you die. In ossification, osteoclasts erode your calcified remains and osteoblasts cover them in new bone." },
+{ s: "Alex", t: "Brutal but accurate. Lengthwise growth at the plate is interstitial growth; growing in width is appositional. And the plate stays the same thickness because cartilage production on top balances bone replacement below." },
+{ s: "Sam", t: "Hormone duo. Blood calcium is low: what happens?" },
+{ s: "Alex", t: "Parathyroid hormone, PTH, is released. It stimulates osteoclasts, bone is resorbed, calcium enters the blood, and secretion stops when calcium normalizes. Your skeleton is a calcium bank and PTH is the withdrawal." },
+{ s: "Sam", t: "Calcium high? Calcitonin from the thyroid's parafollicular cells. But honest answer for the exam: its effects are negligible at normal levels. High doses can nudge calcium down temporarily." },
+{ s: "Alex", t: "Unit three. Muscle first, then nerve. Three muscle types. Give me the three-word summary of skeletal." },
+{ s: "Sam", t: "Skeletal, striated, voluntary. Long cylindrical fibers, multinucleated, because each fiber is a syncytium, many cells fused into one." },
+{ s: "Alex", t: "Cardiac?" },
+{ s: "Sam", t: "Striated but involuntary. Branched cells, one or two central nuclei, and the signature feature: intercalated discs joining cell to cell. From splanchnic mesoderm." },
+{ s: "Alex", t: "Smooth?" },
+{ s: "Sam", t: "No striations, involuntary. Small tapered fusiform cells, one central nucleus, no sarcomeres at all, dense bodies instead of Z discs." },
+{ s: "Sam", t: "Vocabulary speed round. Sarco- means flesh, so: sarcolemma?" },
+{ s: "Alex", t: "The muscle cell's plasma membrane. Sarcoplasm is its cytoplasm, rich in mitochondria, glycosomes storing glycogen, and myoglobin storing oxygen. Sarcoplasmic reticulum is its smooth ER, the calcium warehouse." },
+{ s: "Sam", t: "Connective tissue wrappings, outside in: epimysium around the whole muscle, perimysium around each fascicle, endomysium around each fiber. Muscle, fascicle, fiber. Epi, peri, endo." },
+{ s: "Alex", t: "Now the sarcomere, Z disc to Z disc, smallest contractile unit, lined up end to end like train cars. Band names. Sam, which band never changes length?" },
+{ s: "Sam", t: "The A band! That's THE exam question. A band is the full length of the thick filaments, and thick filaments don't shorten, they're just overlapped more." },
+{ s: "Alex", t: "Full roster: A band dark, thick plus overlapping thin. I band light, thin only, with the Z disc through its middle. H zone, thick only, center of the A band. M line, myomesin, bisects the H zone and anchors the thick filaments." },
+{ s: "Sam", t: "So during contraction: sarcomere shortens, Z discs approach, I band shrinks, gone entirely at maximal contraction, H zone narrows, A band constant. Two combs sliding together: the combs never change length, they just overlap." },
+{ s: "Alex", t: "And sliding needs two ingredients..." },
+{ s: "Sam", t: "ATP and calcium. Which brings in the plumbing: the SR wraps every myofibril and releases calcium; T tubules are invaginations of the sarcolemma carrying the electrical signal deep into the fiber, at each A-I junction." },
+{ s: "Alex", t: "And a triad is T tubule plus a terminal cistern on each side. Cardiac muscle has diads instead, one cistern, at the Z lines." },
+{ s: "Sam", t: "Repair question, guaranteed points. Skeletal muscle fiber dies: who fixes it?" },
+{ s: "Alex", t: "Satellite cells, sitting inside the basal lamina. They divide into myoblasts and fuse. But the supply is finite, a big injury can exhaust it." },
+{ s: "Sam", t: "Cardiac muscle?" },
+{ s: "Alex", t: "No repair. Post-mitotic, no satellite cells, you get scar tissue. That's why a heart attack leaves permanent damage." },
+{ s: "Sam", t: "And smooth muscle is the overachiever: cells divide, hyperplasia, and enlarge, hypertrophy." },
+{ s: "Alex", t: "Nervous tissue. Three jobs: sensory input, integration, motor output. It develops from neural ectoderm, and it's nearly all cells, almost no ECM. Two cell types: neurons and neuroglia." },
+{ s: "Sam", t: "Tour the neuron for me." },
+{ s: "Alex", t: "Cell body, also called soma or perikaryon: the biosynthetic center, with rough ER showing up as Nissl bodies. Dendrites: the receivers, carrying graded potentials toward the body, with dendritic spines collecting input. And one axon, starting at the axon hillock, constant diameter, conducting impulses away, ending in terminal boutons that release neurotransmitter." },
+{ s: "Sam", t: "Classifications. Structural first: multipolar, three or more processes, most CNS neurons. Bipolar, one axon one dendrite, rare, retina and olfactory mucosa. Pseudounipolar, a single T-shaped process, and those are your sensory neurons with cell bodies in ganglia." },
+{ s: "Alex", t: "Functional: sensory from receptors to CNS, almost all pseudounipolar. Motor from CNS to effectors, multipolar. And interneurons in between, entirely within the CNS, and get this, 99 percent of all neurons." },
+{ s: "Sam", t: "Synapses: contact points that keep traffic one-way. Electrical synapses are gap junctions, direct current. Chemical synapses, the common kind, release neurotransmitters from vesicles." },
+{ s: "Alex", t: "Glia time. Six types, four CNS, two PNS. I'll take CNS. Astrocytes: most numerous and versatile, support synapses, form scars after injury, maintain the blood-brain barrier exchange, mop up ions and neurotransmitters." },
+{ s: "Sam", t: "Oligodendrocytes make CNS myelin. Microglia are the immune cells, derived from monocytes, they turn macrophage and eat microbes and debris. Ependymal cells line the ventricles and central canal, often ciliated, and the choroid plexus versions secrete and circulate cerebrospinal fluid." },
+{ s: "Alex", t: "PNS pair: Schwann cells wrap axons in myelin, one cell per segment, jelly-roll style. Satellite cells surround cell bodies in ganglia for support. Careful, same name as the muscle repair cell, totally different job." },
+{ s: "Sam", t: "Myelin details the exam loves: gaps between Schwann cells are nodes of Ranvier, now also called myelin sheath gaps. The stretches between are internodes. Clefts of Schmidt-Lanterman: PNS myelin only. And unmyelinated PNS fibers still sit in Schwann cells, one cell can hold about fifteen." },
+{ s: "Alex", t: "Gray versus white matter. Gray is cell bodies, dendrites and synapses; white is myelinated axons. In the brain, gray is superficial, the cortex, white is deep. In the spinal cord it flips: gray forms the deep H around the central canal, white is superficial." },
+{ s: "Sam", t: "Cortex trivia: cerebral cortex has six layers. Cerebellar cortex has three: molecular, Purkinje, granular, and the cerebellum runs fine motor control and posture." },
+{ s: "Alex", t: "Spinal cord horns: dorsal horn receives sensory input from those pseudounipolar neurons. Ventral horn holds motor neurons to skeletal muscle. Lateral horn, thoracic and lumbar only, holds sympathetic motor neurons. Sensory in the back door, motor out the front." },
+{ s: "Sam", t: "Peripheral nerve wrappings, and if this sounds familiar, it should: epineurium around the whole nerve, perineurium around each fascicle, endoneurium around each fiber. Same epi-peri-endo pattern as muscle. Learn it once, score it twice." },
+{ s: "Alex", t: "Last topic: ganglia, clusters of cell bodies outside the CNS. Dorsal root ganglion: sensory, pseudounipolar neurons, lots of satellite cells, thick capsule." },
+{ s: "Sam", t: "Sympathetic ganglia: multipolar motor neurons, fewer satellite cells, thin capsule. Parasympathetic ganglia: sitting right in the organ walls, no capsule, running smooth muscle." },
+{ s: "Alex", t: "That's the whole exam. Let's land it with the five facts I'd tattoo on my arm. One: carbon monoxide binding to hemoglobin is irreversible." },
+{ s: "Sam", t: "Two: Never Let Monkeys Eat Bananas, neutrophil, lymphocyte, monocyte, eosinophil, basophil." },
+{ s: "Alex", t: "Three: the A band never changes length during contraction." },
+{ s: "Sam", t: "Four: osteoclasts come from the macrophage lineage and dig Howship's lacunae; osteoblasts build osteoid." },
+{ s: "Alex", t: "And five: growth plate zones in order, resting, proliferation, hypertrophic, calcification, ossification." },
+{ s: "Sam", t: "Go get it, Ann. You've got this one." },
+{ s: "Alex", t: "See you after the exam!" },
+];
+
+/* ---------- Speech-only text fixes (display text is unchanged) ---------- */
+function forSpeech(t) {
+  return t
+    .replace(/\bC (one|two|six|seven)\b/g, "C-$1")
+    .replace(/\bV two\b/g, "V-2")
+    .replace(/\bV three\b/g, "V-3")
+    .replace(/—/g, ", ");
+}
+
+/* Split each line into sentences. Short utterances sound more natural,
+   and they avoid Chrome's bug where long utterances silently stop (~15 s). */
+function toChunks(t) {
+  const parts = forSpeech(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [t];
+  const out = [];
+  for (const p of parts.map(x => x.trim()).filter(Boolean)) {
+    if (out.length && out[out.length - 1].length < 25) out[out.length - 1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+const chunks = script.map(l => toChunks(l.t));
+
+/* ---------- Transcript (DOM methods only; the script array is the sole source) ---------- */
+const transcriptDiv = document.getElementById('transcript');
+script.forEach((item, index) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.id = 'line-' + index;
+  div.title = 'Click to play from here';
+  const sp = document.createElement('span');
+  sp.className = 'speaker ' + item.s.toLowerCase();
+  sp.textContent = item.s + ':';
+  div.appendChild(sp);
+  div.appendChild(document.createTextNode(' ' + item.t));
+  div.onclick = () => playFrom(index);
+  transcriptDiv.appendChild(div);
+});
+
+/* ---------- Voice selection: prefer neural / natural voices ----------
+   iOS marks voice quality in voiceURI ("premium"/"enhanced"; the default
+   variants are "compact"), never in the name — score both so iPhone lists
+   quality-first instead of alphabetically. */
+const synth = window.speechSynthesis;
+let voices = [];
+const MALE = /\b(guy|andrew|christopher|eric|davis|brian|roger|steffan|tony|jason|ryan|thomas|daniel|aaron|fred|tom|evan|nathan|liam|william|male)\b/i;
+const FEMALE = /\b(aria|jenny|emma|ava|michelle|ana|sara|jane|nancy|libby|sonia|samantha|zira|allison|susan|karen|moira|tessa|serena|natasha|clara|female)\b/i;
+
+function score(v) {
+  const n = v.name, u = (v.voiceURI || '') + ' ' + n;
+  let s = 0;
+  if (/natural|neural/i.test(n)) s += 100;
+  if (/online/i.test(n)) s += 60;
+  if (/premium/i.test(u)) s += 55;
+  if (/enhanced/i.test(u)) s += 45;
+  if (/google/i.test(n)) s += 30;
+  if (v.lang === 'en-US') s += 10;
+  if (/compact/i.test(u)) s -= 60;
+  if (/microsoft (david|zira|mark) desktop/i.test(n)) s -= 50;
+  if (/espeak/i.test(n)) s -= 80;
+  return s;
+}
+
+function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+function loadVoices() {
+  voices = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en'))
+                            .sort((a, b) => score(b) - score(a));
+  if (!voices.length) return;
+
+  const alexSel = document.getElementById('alexVoice');
+  const samSel = document.getElementById('samVoice');
+  [alexSel, samSel].forEach(sel => {
+    sel.textContent = '';
+    voices.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(o);
+    });
+  });
+
+  const males = voices.filter(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const females = voices.filter(v => FEMALE.test(v.name));
+  let alex = males[0] || voices[0];
+  let sam = females.find(v => v.name !== alex.name) || voices.find(v => v.name !== alex.name) || alex;
+
+  const savedA = load('alexVoice'), savedS = load('samVoice');
+  if (savedA && voices.some(v => v.name === savedA)) alex = voices.find(v => v.name === savedA);
+  if (savedS && voices.some(v => v.name === savedS)) sam = voices.find(v => v.name === savedS);
+
+  alexSel.value = alex.name;
+  samSel.value = sam.name;
+
+  const hasNeural = voices.some(v => score(v) >= 30);
+  document.getElementById('voiceHint').textContent = hasNeural
+    ? 'Best-sounding voices are listed first. "Natural", "Online" and "Enhanced" voices sound most human.'
+    : 'Only basic system voices were found. For much more natural voices, open this page in Microsoft Edge (Natural voices) or Chrome (Google voices).';
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.getElementById('voiceHint').textContent =
+      'iPhone: turn the silent switch off and turn up the volume. Apple does not let web pages use downloaded Premium voices, so these are the best voices available here. For real voices, use the recording player above when the episode has one.';
+  }
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+(function retryVoices(n) {        // Safari sometimes never fires onvoiceschanged
+  if (voices.length || n <= 0) return;
+  setTimeout(() => { loadVoices(); retryVoices(n - 1); }, 250);
+})(20);
+
+document.getElementById('alexVoice').onchange = e => save('alexVoice', e.target.value);
+document.getElementById('samVoice').onchange = e => save('samVoice', e.target.value);
+const rateEl = document.getElementById('rate');
+const savedRate = load('rate'); if (savedRate) rateEl.value = savedRate;
+const showRate = () => document.getElementById('rateVal').textContent = Number(rateEl.value).toFixed(2).replace(/0$/, '') + '×';
+showRate();
+rateEl.oninput = () => { save('rate', rateEl.value); showRate(); };
+
+function voiceFor(speaker) {
+  const name = document.getElementById(speaker === 'Alex' ? 'alexVoice' : 'samVoice').value;
+  return voices.find(v => v.name === name) || null;
+}
+
+/* ---------- Playback ---------- */
+let idx = 0, chunk = 0, playing = false, paused = false, runToken = 0, timer = null, currentUtterance = null, unlocked = false;
+const SENTENCE_GAP = 120;   // ms between sentences
+const SPEAKER_GAP = 450;    // ms between hosts (conversational turn-taking)
+
+function highlight(i) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('line-' + i);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function speakCurrent() {
+  if (!playing || paused) return;
+  if (idx >= script.length) {
+    playing = false;
+    document.getElementById('statusText').textContent = "Podcast Complete!";
+    return;
+  }
+  if (chunk === 0) highlight(idx);
+  const item = script[idx];
+  const u = new SpeechSynthesisUtterance(chunks[idx][chunk]);
+  currentUtterance = u;   // keep a reference: iOS Safari garbage-collects utterances and never fires onend
+  const v = voiceFor(item.s);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateEl.value);
+  u.pitch = 1;   // pitch-shifting neural voices makes them sound artificial
+  document.getElementById('statusText').textContent = 'Playing ' + (idx + 1) + ' of ' + script.length + ' (' + item.s + ')';
+
+  const token = runToken;
+  const advance = () => {
+    if (token !== runToken) return;          // ignore events from cancelled utterances
+    chunk++;
+    let gap = SENTENCE_GAP;
+    if (chunk >= chunks[idx].length) { chunk = 0; idx++; gap = SPEAKER_GAP; }
+    timer = setTimeout(speakCurrent, gap);
+  };
+  u.onend = advance;
+  u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') advance(); };
+  synth.speak(u);
+}
+
+/* Returns true if something was actually cancelled. */
+function halt() {
+  runToken++; clearTimeout(timer);
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  return busy;
+}
+
+/* iOS only allows speech that starts directly inside a tap. Speaking a
+   silent utterance on the first tap unlocks it for the rest of the session. */
+function unlockAudio() {
+  if (unlocked) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  synth.speak(u);
+  unlocked = true;
+}
+
+function playFrom(i) {
+  unlockAudio();
+  const wasBusy = halt();
+  idx = i; chunk = 0; playing = true; paused = false;
+  // Safari drops a speak() issued in the same tick as cancel(), so wait briefly when we cancelled.
+  if (wasBusy) timer = setTimeout(speakCurrent, 150);
+  else speakCurrent();
+}
+
+function startPodcast() { playFrom(0); }
+
+/* Pause by cancelling and restarting the current sentence on resume.
+   Native pause()/resume() is unreliable with Google and online voices. */
+function pauseResumePodcast() {
+  if (!playing) return;
+  if (paused) {
+    unlockAudio();
+    paused = false;
+    speakCurrent();
+  } else {
+    paused = true;
+    halt();
+    document.getElementById('statusText').textContent = "Paused";
+  }
+}
+
+function stopPodcast() {
+  halt();
+  playing = false; paused = false; idx = 0; chunk = 0;
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  document.getElementById('statusText').textContent = "Stopped";
+}
+
+/* ---------- Studio recording (m4a rendered on the Mac) ---------- */
+const epAudio = document.getElementById('epAudio');
+epAudio.addEventListener('loadedmetadata', () => { document.getElementById('audioWrap').hidden = false; });
+epAudio.addEventListener('error', () => {});            // no m4a yet: slot stays hidden
+epAudio.addEventListener('play', () => { try { stopPodcast(); } catch (e) {} });
+document.getElementById('playBtn').addEventListener('click', () => { try { epAudio.pause(); } catch (e) {} });
+</script>
+</body>
+</html>
