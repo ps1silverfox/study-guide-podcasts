@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DAA Exam I Review Podcast</title>
+<style>
+/* Two-host TTS podcast player; single-theme dark by design (matches the series). */
+:root { color-scheme: dark; --bg:#0f172a; --card:#1e293b; --card-hi:#334155; --ink:#f8fafc; --ink-soft:#94a3b8; --accent:#38bdf8; --accent2:#34d399; --btn:#0284c7; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); max-width: 800px; margin: 0 auto; padding-inline: 16px; padding-block: 24px; line-height: 1.6; box-sizing: border-box; }
+.player-card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 30px; border: 1px solid var(--card-hi); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+h1 { margin-top: 0; color: var(--accent); font-size: 24px; }
+.controls { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+button { background: var(--btn); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+button:hover { background: #0369a1; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .player-card { padding: 16px; } h1 { font-size: 20px; } .status { margin-left: 0; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .line { transition: none; } .line.active { transform: none; } }
+button.secondary { background: #475569; }
+.status { margin-left: auto; color: var(--ink-soft); font-size: 14px; }
+.settings { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 18px; align-items: center; font-size: 14px; color: #cbd5e1; }
+select, input[type=range] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--card-hi); border-radius: 6px; padding: 6px; }
+.hint { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.line { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: var(--card); border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+.line:hover { background: #26354d; }
+.line.active { background: var(--card-hi); border-left-color: var(--accent); transform: scale(1.01); }
+.speaker { font-weight: 700; color: var(--accent); margin-right: 8px; }
+.speaker.sam { color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="player-card">
+<h1>🎙️ DAA Exam I Review Podcast</h1>
+<p>Two-Host Audio Review: Embryology, Bone Development, Osteology, Arthrology, Planes and Ranges of Motion</p>
+<div id="audioWrap" hidden>
+<audio id="epAudio" controls preload="metadata" src="daa-lecture-exam-1-review.mp4" style="width:100%"></audio>
+<div class="hint">Studio recording — real voices, keeps playing with the screen off. The buttons below use your phone's built-in voices instead.</div>
+</div>
+<div class="controls">
+<button id="playBtn" onclick="startPodcast()">▶ Play Full Podcast</button>
+<button class="secondary" onclick="pauseResumePodcast()">⏸ Pause / Resume</button>
+<button class="secondary" onclick="stopPodcast()">⏹ Stop</button>
+<span class="status" id="statusText">Ready to play</span>
+</div>
+<div class="settings">
+<label for="alexVoice">Alex voice</label><select id="alexVoice"></select>
+<label for="samVoice">Sam voice</label><select id="samVoice"></select>
+<label for="rate">Speed <span id="rateVal">1.0×</span></label><input type="range" id="rate" min="0.8" max="1.3" step="0.05" value="1.0">
+</div>
+<div class="hint" id="voiceHint"></div>
+</div>
+<div id="transcript"></div>
+
+<script>
+const script = [
+{ s: "Alex", t: "Welcome to the audio review for the DAA Lecture Exam One! I'm Alex." },
+{ s: "Sam", t: "And I'm Sam. Today we cover everything on the review: embryology weeks one through four, bone development, the skull, the vertebral column, limb landmarks, joints, planes, and ranges of motion." },
+{ s: "Alex", t: "The exam asks about ten embryology questions: five on weeks one through four, and five on bone development. So let's start the clock at week one." },
+{ s: "Sam", t: "Week one is fertilization, cleavage divisions, and the start of implantation in the uterine wall. The key structures are the zygote, the morula, and the blastocyst, which has an inner cell mass and a trophoblast." },
+{ s: "Alex", t: "Week two: the embryo becomes a flat TWO-layered disc, the bilaminar disc, made of epiblast and hypoblast, along with the amniotic cavity and the yolk sac. Easy memory hook: week two, two layers." },
+{ s: "Sam", t: "Week three is gastrulation! The disc becomes THREE layers: ectoderm, mesoderm, and endoderm. The primitive streak appears, plus the notochord and the neural plate, which is the start of the nervous system. Week three, three layers." },
+{ s: "Alex", t: "And week four, the flat disc folds into a tube-shaped embryo and the neural tube closes. Somites appear, plus pharyngeal arches, limb buds, and the heart tube." },
+{ s: "Sam", t: "Why does this matter for bones? The mesoderm, from week three, forms most of the skeleton. Blocks of mesoderm beside the neural tube become somites in week four, and part of each somite, the sclerotome, later builds the vertebrae and ribs." },
+{ s: "Alex", t: "Now bone development. All bone forms by one of two methods: intramembranous or endochondral ossification. The difference is what the bone is replacing." },
+{ s: "Sam", t: "Intramembranous ossification starts from a sheet of embryonic connective tissue called mesenchyme. Cells become osteoblasts and make bone directly. That builds the flat bones of the skull vault, like the frontal and parietal bones, the facial bones, the mandible, and mostly the clavicle." },
+{ s: "Alex", t: "Endochondral ossification starts from a hyaline cartilage model shaped like the future bone. Cartilage is replaced by bone, with a primary ossification center forming in the shaft, the diaphysis. That builds most of the skeleton: long bones like the humerus, femur and tibia, plus vertebrae, ribs, and the bones of the skull base." },
+{ s: "Sam", t: "Exam shortcut: flat bones of the skull roof are intramembranous. Long bones and the vertebral column are endochondral. Growth differs too: flat bones grow at their edges, at the sutures, while long bones lengthen at the epiphyseal plates, the growth plates." },
+{ s: "Alex", t: "Which brings us to the newborn skull. Sutures are the narrow seams of fibrous tissue between skull bones. Fontanels, the soft spots, are wider membrane-filled spaces where several sutures meet. They let the head squeeze through the birth canal and let the brain grow." },
+{ s: "Sam", t: "Know all four fontanels and their adult landmarks. The anterior fontanel sits at the top front, where the coronal, sagittal and metopic sutures meet; its adult landmark is bregma. The posterior fontanel is at the back of the top, where the sagittal and lambdoid sutures meet; its landmark is lambda." },
+{ s: "Alex", t: "The anterolateral or sphenoidal fontanel is on the side, in front of the ear, and becomes the pterion. The posterolateral or mastoid fontanel is behind the ear, where the lambdoid and squamosal sutures meet, and becomes the asterion." },
+{ s: "Sam", t: "Timing pearl: the anterior fontanel usually closes LAST, around the second year of life. The posterior fontanel closes much earlier." },
+{ s: "Alex", t: "Quick suture roll call. Coronal: between the frontal bone and the two parietals. Sagittal: between the two parietal bones. Lambdoid: between the parietals and the occipital. Squamosal: between the temporal and parietal. And the metopic suture runs between the two halves of the frontal bone in a newborn." },
+{ s: "Sam", t: "On to the skull itself. The calvaria is the skullcap, the roof of the cranial vault. The review stresses knowing which bones articulate. Here's the trap: the temporal bone articulates with the parietal, occipital, sphenoid, zygomatic and mandible, but NOT with the frontal bone." },
+{ s: "Alex", t: "And the pterion, that H-shaped meeting point on the side of the skull, is formed by exactly four bones: frontal, parietal, temporal and sphenoid. The zygomatic does not contribute. Remember, the pterion is the adult counterpart of the anterolateral fontanel." },
+{ s: "Sam", t: "The orbit is a seven-bone neighborhood: frontal, sphenoid, zygomatic, maxilla, lacrimal, ethmoid and palatine. At the back of the orbit are three openings: the optic canal, the superior orbital fissure, and the inferior orbital fissure." },
+{ s: "Alex", t: "On the mandible, know the condylar process, the coronoid process, the lingula on the inner surface of the ramus, and the mental protuberance, the chin." },
+{ s: "Sam", t: "Now the floor of the cranial cavity. For each opening, know its name, the bone it sits in, and what passes through. Let's rapid-fire the sphenoid group first." },
+{ s: "Alex", t: "Foramen rotundum, in the sphenoid: the maxillary nerve, V two. Foramen ovale, sphenoid: the mandibular nerve, V three. Foramen spinosum, sphenoid: the middle meningeal artery. And the optic canal, also sphenoid: the optic nerve." },
+{ s: "Sam", t: "Then the shared and temporal openings. The foramen lacerum sits between the temporal, sphenoid and occipital bones and is mostly filled with cartilage in life. The carotid canal, in the temporal bone, carries the internal carotid artery. The jugular foramen, between temporal and occipital, carries the internal jugular vein plus cranial nerves nine, ten and eleven. And the foramen magnum, in the occipital bone, is where the spinal cord connects to the brainstem." },
+{ s: "Alex", t: "The sella turcica, the Turkish saddle, is on the sphenoid bone. Its parts: the tuberculum sellae in front, the hypophyseal fossa in the middle, and the dorsum sellae behind, with clinoid processes at the corners. Its job is to protect the pituitary gland, the hypophysis, which sits in the hypophyseal fossa." },
+{ s: "Sam", t: "And the three auditory ossicles are housed in the petrous part of the temporal bone. From lateral to medial: malleus, incus, stapes. Flip it for medial to lateral: stapes, incus, malleus." },
+{ s: "Alex", t: "Time for the vertebral column. Sam, give us the vertebral formula." },
+{ s: "Sam", t: "Seven cervical, twelve thoracic, five lumbar, five sacral fused into the sacrum, and about four coccygeal fused into the coccyx." },
+{ s: "Alex", t: "Curves next. The thoracic and sacral curves are PRIMARY: present before birth, the fetal C shape. The cervical and lumbar curves are SECONDARY: the cervical curve forms as the infant lifts and holds up its head, and the lumbar curve forms as the child begins to sit and walk." },
+{ s: "Sam", t: "A typical vertebra has a weight-bearing body, a vertebral arch made of two pedicles and two laminae, a spinous process, two transverse processes, and superior and inferior articular processes that form joints with the neighbors. The body and arch surround the vertebral foramen, and the stacked foramina make the vertebral canal for the spinal cord." },
+{ s: "Alex", t: "Regional identification is pattern matching. Cervical: small body, transverse foramina, and a short bifid spinous process from C two to C six. Thoracic: costal facets for ribs, a long spinous process sloping downward, and a heart-shaped body. Lumbar: very large body, short blunt spinous process, and NO transverse foramina or costal facets." },
+{ s: "Sam", t: "Three specials. The atlas, C one, has no body and no spinous process, and supports the skull. The axis, C two, has the dens, the odontoid process, that the atlas rotates around. And C seven is the vertebra prominens, with the long spinous process you can feel at the base of the neck." },
+{ s: "Alex", t: "Intervertebral discs sit between the vertebral bodies. Each has a soft center, the nucleus pulposus, inside a tough ring, the annulus fibrosus. And a favorite exam trap: there is NO disc between the atlas and the axis." },
+{ s: "Sam", t: "Ligaments of the column. The anterior longitudinal ligament runs along the FRONT of the bodies and discs. The posterior longitudinal runs along the back of the bodies, inside the vertebral canal. The ligamentum flavum connects adjacent laminae, the interspinous ligaments connect adjacent spinous processes, and the supraspinous ligament runs along the tips of the spinous processes." },
+{ s: "Alex", t: "On to the appendicular skeleton. The pectoral girdle is the clavicle and scapula. On the clavicle: the sternal end is medial and meets the sternum, the acromial end is lateral and meets the scapula, and the conoid tubercle is on the underside of the lateral part." },
+{ s: "Sam", t: "On the scapula, the subscapular fossa is on the front, the costal surface, while the spine with the supraspinous and infraspinous fossae is on the back. On the humerus, the greater tubercle is lateral and the lesser tubercle faces front." },
+{ s: "Alex", t: "Forearm: the radius has the radial tuberosity on the upper shaft and a styloid process on the lateral side at the wrist. The ulna has the olecranon, your elbow point, and its own styloid process at the wrist. And each rib has a costal groove along its lower inner edge." },
+{ s: "Sam", t: "The hip bone, the os coxae, is three bones, ilium, ischium and pubis, that all meet at the cup-shaped acetabulum. Know the greater sciatic notch above the ischial spine, the lesser sciatic notch below it, the ischial tuberosity, and the pubic tubercle." },
+{ s: "Alex", t: "And the inguinal ligament runs from the anterior superior iliac spine to the pubic tubercle. Lower limb landmarks: the tibial tuberosity on the front of the upper tibia, the medial malleolus at the inner ankle, and the greater trochanter on the upper lateral femur." },
+{ s: "Sam", t: "Carpal bones, lateral to medial. Proximal row: scaphoid, lunate, triquetrum, pisiform. Distal row: trapezium, trapezoid, capitate, hamate. The capitate sits at the center of the distal row." },
+{ s: "Alex", t: "And the tarsals: talus, calcaneus, navicular, cuboid, and the three cuneiforms." },
+{ s: "Sam", t: "Final stretch: arthrology, planes and motion. First the language. A supine patient lies face up; prone is face down. Proximal means closer to the trunk, distal means farther: the forearm, the antebrachium, is distal to the arm, the brachium. Medial is toward the midline: the glabella is medial to the supraciliary arch. Crural pertains to the leg, and squama means flat." },
+{ s: "Alex", t: "Planes and their movements. The midsagittal plane splits the body into equal right and left halves; a parasagittal plane into unequal ones. Flexion and extension happen in the sagittal planes. The coronal or frontal plane splits front and back, and hosts abduction and adduction. The transverse plane splits upper and lower, and hosts rotation. Oblique planes are angled, for combination movements." },
+{ s: "Sam", t: "Examples: bending the elbow is flexion in the sagittal plane. Lifting the arm out to the side is abduction in the coronal plane. Turning the head side to side is rotation in the transverse plane." },
+{ s: "Alex", t: "Joint classification comes in two flavors: by structure, meaning what tissue joins the bones, or by function, meaning how much they move. Synarthrosis is immovable, amphiarthrosis slightly movable, and diarthrosis freely movable." },
+{ s: "Sam", t: "By structure: fibrous joints are held by dense fibrous tissue and are mostly synarthroses, like skull sutures and the gomphosis, a tooth in its socket. Cartilaginous joints are held by cartilage: the epiphyseal plate is hyaline cartilage, while the pubic symphysis and the intervertebral discs are fibrocartilage. Synovial joints have a fluid-filled joint cavity and are the freely movable diarthroses: shoulder, hip, elbow, wrist." },
+{ s: "Alex", t: "The six synovial subtypes. Plane or gliding joints slide, like between the carpal bones. Hinge joints flex and extend, like the elbow. Pivot joints rotate around an axis, like the atlas spinning on the dens of the axis." },
+{ s: "Sam", t: "Condyloid joints do flexion, extension, abduction, adduction and circumduction, like the wrist, the radiocarpal joint. The saddle joint gives wide movement in two directions including opposition, and that's the thumb's carpometacarpal joint. Ball-and-socket joints move in all directions including rotation: the shoulder and the hip." },
+{ s: "Alex", t: "Vocabulary trap: a LIGAMENT connects bone to bone and belongs to arthrology. A tendon connects muscle to bone." },
+{ s: "Sam", t: "Ranges of motion to finish. Flexion decreases the angle at a joint; extension increases it. Abduction moves away from the midline; adduction moves toward it. Medial or internal rotation turns the anterior surface toward the midline; lateral or external rotation turns it away, and the greater tubercle of the humerus moves laterally and posteriorly." },
+{ s: "Alex", t: "Scapula special case: retraction of the scapulae is ADDUCTION, pulling them toward the spine, and protraction is abduction. And circumduction is moving a limb in a cone-shaped circle." },
+{ s: "Sam", t: "That's the whole review: embryology by week, two ways bone forms, fontanels to sutures, skull openings, the vertebral column, limb landmarks, joint classes, planes, and motion. Tap any line in the transcript to replay it." },
+{ s: "Alex", t: "Study the figures in your pack for the picture questions, run the quiz until the rationales feel obvious, and go ace Exam One!" }
+];
+
+/* ---------- Speech-only text fixes (display text is unchanged) ---------- */
+function forSpeech(t) {
+  return t
+    .replace(/\bC (one|two|six|seven)\b/g, "C-$1")
+    .replace(/\bV two\b/g, "V-2")
+    .replace(/\bV three\b/g, "V-3")
+    .replace(/—/g, ", ");
+}
+
+/* Split each line into sentences. Short utterances sound more natural,
+   and they avoid Chrome's bug where long utterances silently stop (~15 s). */
+function toChunks(t) {
+  const parts = forSpeech(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [t];
+  const out = [];
+  for (const p of parts.map(x => x.trim()).filter(Boolean)) {
+    if (out.length && out[out.length - 1].length < 25) out[out.length - 1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+const chunks = script.map(l => toChunks(l.t));
+
+/* ---------- Transcript (DOM methods only; the script array is the sole source) ---------- */
+const transcriptDiv = document.getElementById('transcript');
+script.forEach((item, index) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.id = 'line-' + index;
+  div.title = 'Click to play from here';
+  const sp = document.createElement('span');
+  sp.className = 'speaker ' + item.s.toLowerCase();
+  sp.textContent = item.s + ':';
+  div.appendChild(sp);
+  div.appendChild(document.createTextNode(' ' + item.t));
+  div.onclick = () => playFrom(index);
+  transcriptDiv.appendChild(div);
+});
+
+/* ---------- Voice selection: prefer neural / natural voices ----------
+   iOS marks voice quality in voiceURI ("premium"/"enhanced"; the default
+   variants are "compact"), never in the name — score both so iPhone lists
+   quality-first instead of alphabetically. */
+const synth = window.speechSynthesis;
+let voices = [];
+const MALE = /\b(guy|andrew|christopher|eric|davis|brian|roger|steffan|tony|jason|ryan|thomas|daniel|aaron|fred|tom|evan|nathan|liam|william|male)\b/i;
+const FEMALE = /\b(aria|jenny|emma|ava|michelle|ana|sara|jane|nancy|libby|sonia|samantha|zira|allison|susan|karen|moira|tessa|serena|natasha|clara|female)\b/i;
+
+function score(v) {
+  const n = v.name, u = (v.voiceURI || '') + ' ' + n;
+  let s = 0;
+  if (/natural|neural/i.test(n)) s += 100;
+  if (/online/i.test(n)) s += 60;
+  if (/premium/i.test(u)) s += 55;
+  if (/enhanced/i.test(u)) s += 45;
+  if (/google/i.test(n)) s += 30;
+  if (v.lang === 'en-US') s += 10;
+  if (/compact/i.test(u)) s -= 60;
+  if (/microsoft (david|zira|mark) desktop/i.test(n)) s -= 50;
+  if (/espeak/i.test(n)) s -= 80;
+  return s;
+}
+
+function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+function loadVoices() {
+  voices = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en'))
+                            .sort((a, b) => score(b) - score(a));
+  if (!voices.length) return;
+
+  const alexSel = document.getElementById('alexVoice');
+  const samSel = document.getElementById('samVoice');
+  [alexSel, samSel].forEach(sel => {
+    sel.textContent = '';
+    voices.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(o);
+    });
+  });
+
+  const males = voices.filter(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const females = voices.filter(v => FEMALE.test(v.name));
+  let alex = males[0] || voices[0];
+  let sam = females.find(v => v.name !== alex.name) || voices.find(v => v.name !== alex.name) || alex;
+
+  const savedA = load('alexVoice'), savedS = load('samVoice');
+  if (savedA && voices.some(v => v.name === savedA)) alex = voices.find(v => v.name === savedA);
+  if (savedS && voices.some(v => v.name === savedS)) sam = voices.find(v => v.name === savedS);
+
+  alexSel.value = alex.name;
+  samSel.value = sam.name;
+
+  const hasNeural = voices.some(v => score(v) >= 30);
+  document.getElementById('voiceHint').textContent = hasNeural
+    ? 'Best-sounding voices are listed first. "Natural", "Online" and "Enhanced" voices sound most human.'
+    : 'Only basic system voices were found. For much more natural voices, open this page in Microsoft Edge (Natural voices) or Chrome (Google voices).';
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.getElementById('voiceHint').textContent =
+      'iPhone: turn the silent switch off and turn up the volume. Apple does not let web pages use downloaded Premium voices, so these are the best voices available here. For real voices, use the recording player above when the episode has one.';
+  }
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+(function retryVoices(n) {        // Safari sometimes never fires onvoiceschanged
+  if (voices.length || n <= 0) return;
+  setTimeout(() => { loadVoices(); retryVoices(n - 1); }, 250);
+})(20);
+
+document.getElementById('alexVoice').onchange = e => save('alexVoice', e.target.value);
+document.getElementById('samVoice').onchange = e => save('samVoice', e.target.value);
+const rateEl = document.getElementById('rate');
+const savedRate = load('rate'); if (savedRate) rateEl.value = savedRate;
+const showRate = () => document.getElementById('rateVal').textContent = Number(rateEl.value).toFixed(2).replace(/0$/, '') + '×';
+showRate();
+rateEl.oninput = () => { save('rate', rateEl.value); showRate(); };
+
+function voiceFor(speaker) {
+  const name = document.getElementById(speaker === 'Alex' ? 'alexVoice' : 'samVoice').value;
+  return voices.find(v => v.name === name) || null;
+}
+
+/* ---------- Playback ---------- */
+let idx = 0, chunk = 0, playing = false, paused = false, runToken = 0, timer = null, currentUtterance = null, unlocked = false;
+const SENTENCE_GAP = 120;   // ms between sentences
+const SPEAKER_GAP = 450;    // ms between hosts (conversational turn-taking)
+
+function highlight(i) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('line-' + i);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function speakCurrent() {
+  if (!playing || paused) return;
+  if (idx >= script.length) {
+    playing = false;
+    document.getElementById('statusText').textContent = "Podcast Complete!";
+    return;
+  }
+  if (chunk === 0) highlight(idx);
+  const item = script[idx];
+  const u = new SpeechSynthesisUtterance(chunks[idx][chunk]);
+  currentUtterance = u;   // keep a reference: iOS Safari garbage-collects utterances and never fires onend
+  const v = voiceFor(item.s);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateEl.value);
+  u.pitch = 1;   // pitch-shifting neural voices makes them sound artificial
+  document.getElementById('statusText').textContent = 'Playing ' + (idx + 1) + ' of ' + script.length + ' (' + item.s + ')';
+
+  const token = runToken;
+  const advance = () => {
+    if (token !== runToken) return;          // ignore events from cancelled utterances
+    chunk++;
+    let gap = SENTENCE_GAP;
+    if (chunk >= chunks[idx].length) { chunk = 0; idx++; gap = SPEAKER_GAP; }
+    timer = setTimeout(speakCurrent, gap);
+  };
+  u.onend = advance;
+  u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') advance(); };
+  synth.speak(u);
+}
+
+/* Returns true if something was actually cancelled. */
+function halt() {
+  runToken++; clearTimeout(timer);
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  return busy;
+}
+
+/* iOS only allows speech that starts directly inside a tap. Speaking a
+   silent utterance on the first tap unlocks it for the rest of the session. */
+function unlockAudio() {
+  if (unlocked) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  synth.speak(u);
+  unlocked = true;
+}
+
+function playFrom(i) {
+  unlockAudio();
+  const wasBusy = halt();
+  idx = i; chunk = 0; playing = true; paused = false;
+  // Safari drops a speak() issued in the same tick as cancel(), so wait briefly when we cancelled.
+  if (wasBusy) timer = setTimeout(speakCurrent, 150);
+  else speakCurrent();
+}
+
+function startPodcast() { playFrom(0); }
+
+/* Pause by cancelling and restarting the current sentence on resume.
+   Native pause()/resume() is unreliable with Google and online voices. */
+function pauseResumePodcast() {
+  if (!playing) return;
+  if (paused) {
+    unlockAudio();
+    paused = false;
+    speakCurrent();
+  } else {
+    paused = true;
+    halt();
+    document.getElementById('statusText').textContent = "Paused";
+  }
+}
+
+function stopPodcast() {
+  halt();
+  playing = false; paused = false; idx = 0; chunk = 0;
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  document.getElementById('statusText').textContent = "Stopped";
+}
+
+/* ---------- Studio recording (m4a rendered on the Mac) ---------- */
+const epAudio = document.getElementById('epAudio');
+epAudio.addEventListener('loadedmetadata', () => { document.getElementById('audioWrap').hidden = false; });
+epAudio.addEventListener('error', () => {});            // no m4a yet: slot stays hidden
+epAudio.addEventListener('play', () => { try { stopPodcast(); } catch (e) {} });
+document.getElementById('playBtn').addEventListener('click', () => { try { epAudio.pause(); } catch (e) {} });
+</script>
+</body>
+</html>

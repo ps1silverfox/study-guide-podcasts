@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chiro Methods Exam I Podcast</title>
+<style>
+/* Two-host TTS podcast player; single-theme dark by design (matches the series). */
+:root { color-scheme: dark; --bg:#0f172a; --card:#1e293b; --card-hi:#334155; --ink:#f8fafc; --ink-soft:#94a3b8; --accent:#38bdf8; --accent2:#34d399; --btn:#0284c7; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); max-width: 800px; margin: 0 auto; padding-inline: 16px; padding-block: 24px; line-height: 1.6; box-sizing: border-box; }
+.player-card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 30px; border: 1px solid var(--card-hi); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+h1 { margin-top: 0; color: var(--accent); font-size: 24px; }
+.controls { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+button { background: var(--btn); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+button:hover { background: #0369a1; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .player-card { padding: 16px; } h1 { font-size: 20px; } .status { margin-left: 0; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .line { transition: none; } .line.active { transform: none; } }
+button.secondary { background: #475569; }
+.status { margin-left: auto; color: var(--ink-soft); font-size: 14px; }
+.settings { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 18px; align-items: center; font-size: 14px; color: #cbd5e1; }
+select, input[type=range] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--card-hi); border-radius: 6px; padding: 6px; }
+.hint { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.line { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: var(--card); border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+.line:hover { background: #26354d; }
+.line.active { background: var(--card-hi); border-left-color: var(--accent); transform: scale(1.01); }
+.speaker { font-weight: 700; color: var(--accent); margin-right: 8px; }
+.speaker.sam { color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="player-card">
+<h1>🎙️ Chiropractic Methods Exam I Podcast</h1>
+<p>Two-Host Audio Review: Communication, History Taking &amp; Palpation Basics</p>
+<div id="audioWrap" hidden>
+<audio id="epAudio" controls preload="metadata" src="chiro-methods-exam-1.mp4" style="width:100%"></audio>
+<div class="hint">Studio recording — real voices, keeps playing with the screen off. The buttons below use your phone's built-in voices instead.</div>
+</div>
+<div class="controls">
+<button id="playBtn" onclick="startPodcast()">▶ Play Full Podcast</button>
+<button class="secondary" onclick="pauseResumePodcast()">⏸ Pause / Resume</button>
+<button class="secondary" onclick="stopPodcast()">⏹ Stop</button>
+<span class="status" id="statusText">Ready to play</span>
+</div>
+<div class="settings">
+<label for="alexVoice">Alex voice</label><select id="alexVoice"></select>
+<label for="samVoice">Sam voice</label><select id="samVoice"></select>
+<label for="rate">Speed <span id="rateVal">1.0×</span></label><input type="range" id="rate" min="0.8" max="1.3" step="0.05" value="1.0">
+</div>
+<div class="hint" id="voiceHint"></div>
+</div>
+<div id="transcript"></div>
+
+<script>
+const script = [
+{ s: "Alex", t: "Welcome to the audio review for Chiropractic Methods Exam One! I'm Alex." },
+{ s: "Sam", t: "And I'm Sam. Today we cover communication and terminology, palpation basics, landmarks and counting the spine, rapport and history taking, active listening, and the tools of the chiropractor." },
+{ s: "Alex", t: "Start with communication. It has three parts: the words you choose, the verbal side, meaning how your voice sounds, and the non-verbal side: posture, face, and touch. A patient hears all three at once, so they must agree with each other." },
+{ s: "Sam", t: "And watch the jargon. Jargon is the set of special words one profession uses that outsiders find hard to understand. Telling a patient you found a P O P at the T V P means nothing to them. Between colleagues, fine. With patients, plain words." },
+{ s: "Alex", t: "The tool for plain explanations is the analogy. People store new ideas more easily when they connect to something already in long-term memory. The lecture teaches the full circle analogy in three steps." },
+{ s: "Sam", t: "Step one: describe FIRST the FAMILIAR, something the listener already knows. Step two: RELATE the components of the familiar thing to the unfamiliar idea. Step three: CLOSE the analogy, returning to the familiar thing while weaving in the new idea. The circle closes where it began." },
+{ s: "Alex", t: "Terminology next. Direction words always describe the patient's body, never the doctor's view. Superior, or cephalo, means toward the head. Inferior means toward the feet. Caudal means tail." },
+{ s: "Sam", t: "Anterior is the front of the body, posterior the back. Medial is toward the midline, lateral is away from the midline. Hypo means less than normal, hyper means more than normal." },
+{ s: "Alex", t: "Prefixes and suffixes decode long words. Myo is muscle, so myalgia is muscle pain. Omo is shoulder, costo is rib. Osteo is bone, chondro is cartilage, arthro is joint. For suffixes: itis is inflammation, algia is pain, and penia means lack of." },
+{ s: "Sam", t: "Now the abbreviations. C H is the contact hand: it touches the segment and usually delivers the thrust. I H is the indifferent hand: the stabilizing, supporting hand that lets the contact hand do its job." },
+{ s: "Alex", t: "I F is the index finger, the second digit. C I F, the chiropractic index finger, is the THIRD digit. R O F is the report of findings. P O P is pain on palpation." },
+{ s: "Sam", t: "S P is the spinous process, T V P the transverse process, M P the mammillary process. I S S is the interspinous space, A P the articular pillar, and M F T P a myofascial trigger point." },
+{ s: "Alex", t: "On to palpation, which means examining with your hands. Good palpation starts with thinking before touching: know your bony landmarks, what goes there and what comes from there, and know the biomechanics. The motto is: structure dictates function. The shape of the bones decides which movements are possible." },
+{ s: "Sam", t: "Four keys. First, safe doctor position. You can do it wrong one time, ten times, but what about one thousand times? Good ergonomics make treatment more effective and lengthen your career. Second, client position: pick the one with best access, explain why, and protect the client's modesty." },
+{ s: "Alex", t: "Third, line of drive: is it safe for the client, biomechanically correct, and safe for you? Fourth, joint play. The presence or absence of joint play is a BIG chiropractic clue. Is it normal or abnormal?" },
+{ s: "Sam", t: "Pressure is where students go wrong. The harder you press, the LESS you feel. A light pressure that blanches the fingernail bed, turns it white, is a good guide. Sometimes you need even lighter." },
+{ s: "Alex", t: "Pressing as hard as on your closed eyeball is too hard. If the client winces, pulls away, or says ouch, you are using way too much pressure. Think of feeling a tiny bump under a sheet: a feather touch finds it. Pressing hard is like shouting while trying to hear a whisper." },
+{ s: "Sam", t: "Ergonomics come with exam-ready numbers. For soft tissue work and massage, stand with arms relaxed at your sides: your fingers or knuckles should brush the table top. For mobilization and osseous adjustment, the base of your patella, your kneecap, should be level with the table top." },
+{ s: "Alex", t: "Keep the shoulders relaxed. They rise when you try too hard or get tired. Elbows flexed and wrists relaxed for light and moderate techniques, and never whip or snap the wrists. Feet shoulder width apart, knees and hips slightly flexed, back straight. Lift heavy limbs close to your body and use bolsters or the table for support." },
+{ s: "Sam", t: "And remember: your nervousness or your confidence is communicated non-verbally through touch. Nervous clients guard. Voice cues like, let your body sink into the table, help prevent guarding." },
+{ s: "Alex", t: "Landmarks and shortcuts. A landmark is along the midline, like a spinous process. A shortcut is a structure lateral to the spine that you line up with to find a segment, and its accuracy varies from client to client." },
+{ s: "Sam", t: "Run the list! C two: the first palpable spinous process. C six: the last freely movable cervical vertebra in full passive extension. C seven T one: the vertebral prominens." },
+{ s: "Alex", t: "T three lines up with the spine of the scapula. T seven with the inferior angle of the scapula, or T six when prone. Remember it as seven up." },
+{ s: "Sam", t: "T nine T ten is where the spinous processes feel closest together. T twelve is the large, round, knobby spinous. The lumbar spinouses are blade-like, with L five markedly smaller. L four sits at the level of the iliac crests, a great self-check. And S two lies between the inferior notches of the P S I S's." },
+{ s: "Alex", t: "Finding transverse processes. For T one to T four, and T nine to T twelve: go one spinous up, over about one inch, then wag the spinous to verify. For T five to T eight: go two interspinous spaces up, over about one inch, and wag to verify." },
+{ s: "Sam", t: "Lumbar mammillary processes: one interspinous space up, over about half to three quarters of an inch. No wagging, just locate. Cervical articular pillars: find the spinous, go about three quarters to one inch lateral, then push posterior to anterior and feel for bony resistance." },
+{ s: "Alex", t: "And the landmark rule: if the landmark is static, does not move, YOU move your palpation. If the landmark is mobile, you keep your hand still." },
+{ s: "Sam", t: "Counting the spine. Use the vertebral prominens as the superior landmark and count down, or start at the lumbosacral junction and count up. Keep your thumb pointed toward the client's head, and practice from both sides." },
+{ s: "Alex", t: "Method one, the Two Finger Slide: put the index finger of your inferior hand on the vertebral prominens, move your chiropractic index finger to the next spinous below, then slide the index finger down to that spinous, and repeat." },
+{ s: "Sam", t: "Method two, the Spider Walk: straddle the vertebral prominens between the index and chiropractic index fingers, then use the ring finger to slide down to the next interspinous space, and repeat down the spine." },
+{ s: "Alex", t: "Homework numbers: palpate each module's structures on at least FIVE people per week, building a palpation bank of about one hundred spines by the end of trimester one. And the penny versus dime quiz tests fine touch: blind, you identify two coins and place them heads or tails up, for up to four points." },
+{ s: "Sam", t: "Unit two: rapport and history taking. Clinical information starts the second the client walks in. You observe how the client looks, smells, and sounds." },
+{ s: "Alex", t: "Looks covers emotion, posture, and gait. Posture: leaning to one side, a hiked hip, carrying a bag or a baby, head cocked on the phone, tensed shoulders, crossed legs or arms. Skin changes: rashes, edema, bruises, increased or decreased hair. Gait: limping, foot flair, tippy toeing, distance between steps, heel strike to toe off." },
+{ s: "Sam", t: "Smells: alcohol, oils, smoke, body odor, even their job. Sounds: pitch, speed, loud or quiet, timid or boisterous." },
+{ s: "Alex", t: "Observations also give you conversation starters: a new limp, a new tattoo, or looking better than last visit. Noticing small changes shows you care, and that builds trust." },
+{ s: "Sam", t: "Know the possible signs of abuse: bruises, timidity, shaking, unusual flinching during palpation, smeared mascara, inability to hold eye contact, and being overly agreeable. Address observations appropriately." },
+{ s: "Alex", t: "The client judges your practice too. Before arrival: the phone call, the online intake form, parking, handicap access, posted hours. Inside: the front desk, waiting room, smell, lighting, cleanliness, and mission statement." },
+{ s: "Sam", t: "So walk through your own office every four months in the client's shoes, asking two key questions: HOW do you want the space to make you feel, and WHAT is its purpose? Structure dictates function applies to the practice layout too." },
+{ s: "Alex", t: "History taking. A history is a conversation, not an inquisition. It builds rapport and trust, shows the client's motives, and gives you about EIGHTY percent of your diagnosis." },
+{ s: "Sam", t: "And patients often make the emotional decision to accept or reject your recommendations DURING the history. Read the new patient paperwork first so you know where to focus. Take notes, but not word for word." },
+{ s: "Alex", t: "Use open-ended questions for general information, like: how can I help you today? Use closed-ended questions for specific details. And always finish with: is there anything else you can tell me that I have not asked?" },
+{ s: "Sam", t: "Charting rules. If it is not written, it did not happen. Be legible, use black or blue ink, date and sign, and keep it confidential. To fix a mistake: draw a single line through it, add your initials and the date. No scribbles, no white-out." },
+{ s: "Alex", t: "Two history mnemonics. The first: F M, O P Q R S T. Functional, Mechanism of injury, Onset, Palliative or Provocative, Quality, Refer or Radiate, Site and Severity, Timing." },
+{ s: "Sam", t: "The second is LOC-Q-SMAT: Location, Onset, Chronology and timing, Quality, Severity and effect on daily activities, Modifying factors, Associated symptoms, and Treatment previous. The mnemonic does not matter as long as the information flows and makes sense." },
+{ s: "Alex", t: "Red flags. A red flag is a sign or symptom very suggestive of, and almost always associated with, a given condition. Shooting electrical pain down the back of the leg into the heel? That is a red flag for lumbar radiculopathy." },
+{ s: "Sam", t: "The list to memorize: history of violent trauma, carcinoma, systemic steroid use, drug abuse, H I V or hepatitis. Recent unexplained weight loss. Constant, progressive, NON-mechanical pain. And bowel or bladder dysfunction." },
+{ s: "Alex", t: "Active listening. Hearing is involuntary, passive, easy, and uses one sense. Listening is active, hard, and engages the mind to receive, build meaning from, and respond to spoken and non-verbal messages. Active listening, based on psychologist Carl Rogers, means giving free and undivided attention to the speaker." },
+{ s: "Sam", t: "It works in four steps, in order: sensing the message, interpreting the message, evaluating the content, then retaining and responding. Interpretation passes through your personal filter: expectations, fears, goals, background, emotions, attitudes, assumptions, needs, values, and past experience. So do NOT evaluate before you have enough information." },
+{ s: "Alex", t: "Techniques: back channeling, those little sounds like ah huh, mm, I see. Plus empathy, gestures, mirroring, and relevant questions. In the exam room: direct eye contact, attentive posture, frequent nodding, reflective sounds, and the power of a pause." },
+{ s: "Sam", t: "Mirroring puts into words what the patient cannot easily express. It helps the patient gain insight, encourages self-expression, and lets you show understanding without implying immediate agreement." },
+{ s: "Alex", t: "Now the barriers. Ambushing: planning your rebuttal and waiting to interrupt. Listening for facts: only collecting facts like it's a test. Pseudolistening: faking attention. Thought speed: we think three to four times faster than anyone can talk, so the mind wanders. Plus laziness, tiredness, and preprogrammed emotional responses, which are more likely when the topic is important." },
+{ s: "Sam", t: "The ten keys include: stop talking, put the talker at ease, show you want to listen, remove distractions, empathize, be patient, hold your temper, go easy on arguments and criticism, ask questions, and when in doubt, ask for clarification." },
+{ s: "Alex", t: "The rewards: building relationships, preventing mistakes, saving time, and making accurate clinical decisions." },
+{ s: "Sam", t: "Unit three: tools of the chiropractor. Exam tools first. Motion palpation assesses abnormal vertebral or extremity motion with the patient in a variety of positions. Static palpation is done with the patient stationary, to assess bony structures and soft tissue." },
+{ s: "Alex", t: "The physical exam covers blood pressure, height, weight, oxygen saturation, and auscultation of the heart, vessels, lungs and bowels, plus posture, observation, and inspection. The orthopedic exam uses simple motions that isolate particular tissues to see whether they cause the symptom." },
+{ s: "Sam", t: "The neurologic exam evaluates sensory and motor responses: cranial nerves, dermatomes, myotomes, reflexes, and muscle strength. Diagnostic imaging, x-ray, C T, and M R I, gives deeper insight into structure. Laboratory testing is usually referred out, and what a chiropractor may do depends on state and scope of practice." },
+{ s: "Alex", t: "And remember: palpation is a tool that is not as commonly used, or as skilled, outside the chiropractic profession." },
+{ s: "Sam", t: "Now the four treatment words the exam LOVES to mix up. Think of a door. Mobilization is gently swinging it through its normal range. Manipulation pushes it just past the normal swing, but never to where the hinges break. An adjustment is a precise, controlled push at one specific hinge." },
+{ s: "Alex", t: "Definitions. Manual therapy: procedures where the hands directly contact the body to treat joints or soft tissues, synonymous with manipulation and spinal manipulative therapy. Manipulation: a manual procedure with a directed THRUST that moves a joint PAST the physiological range of motion, without exceeding the anatomic limit. It commonly implies a LONG-lever osseous contact." },
+{ s: "Sam", t: "Adjustment: any chiropractic procedure using controlled force, leverage, direction, amplitude, and velocity at specific joints or regions. It commonly implies a SHORT-lever osseous contact, and it influences joint and neurophysiologic function. Mobilization: movement applied once or repeatedly WITHIN the physiologic range, with no thrust or impulse, aimed at restoring joint mobility." },
+{ s: "Alex", t: "Memory hook: manipulation is the longer word, long lever. Adjustment is specific and short lever. Mobilization has no thrust at all." },
+{ s: "Sam", t: "Other treatment tools: adjustments by hand, drop assisted, or instrument assisted. Mobilization, nutrition, physiotherapy, active or passive, rehabilitation, and wellness counseling." },
+{ s: "Alex", t: "Which adjustive procedure do you choose? It depends on: the patient's age, acute versus chronic problem, general condition including co-morbidities, YOUR size and technical ability, effectiveness of previous or present therapy, your knowledge of anatomy and biomechanics, and the mechanical characteristics of the procedure." },
+{ s: "Sam", t: "Position vocabulary. Patient positions: prone, supine, seated, knee-chest, side-lying, standing. Doctor position is your stance in reference to the patient or table: head of table, side of table, foot of table, the fencer's or staggered stance, and the square, straight-on stance." },
+{ s: "Alex", t: "Cephalad means toward the head, caudad toward the tail. Ipsilateral is the same side, contralateral the opposite side." },
+{ s: "Sam", t: "Contact point: the area of YOUR impulse hand that the force travels through. Options include the pisiform, hypothenar, the knife-edge metacarpal, fingertip or finger pad, the interphalangeal and metacarpophalangeal joints, the web, thumb, thenar, calcaneal, and palmar contacts. The segmental contact point is the bony landmark on the PATIENT that you contact." },
+{ s: "Alex", t: "Tissue pull: traction applied to the superficial soft tissue over the segmental contact point. Line of drive: the intended direction of the impulse force, also called the line of correction. Force generator: where in your body you create the force, like the pecs, the triceps, or a body drop." },
+{ s: "Sam", t: "Table parts to know: head of table, foot of table, side of table, the cervical pad or headpiece, the thoracic or dorsal pad, lumbar pad, pelvic pad, arm rest, and foot rest." },
+{ s: "Alex", t: "Last topic: training fine touch. It is a psychomotor skill, so you cannot cram it. Build a silverware spine: tape three to six plastic forks and spoons, eating side down, to a hand towel, then palpate for the peaks and valleys through the towel. One fold of the towel is easiest, two is more challenging, three is the most challenging." },
+{ s: "Sam", t: "Add palpating through different fabrics, palpating pets, braille cards, hair between phone book pages, penny versus dime, bone models, and classmates during breaks. And master speed control and modulation of force: force and load rate are the metrics of an adjustment." },
+{ s: "Alex", t: "Rapid recap! Three aspects of communication: words, verbal, non-verbal. Full circle analogy: describe the familiar, relate the components, close the circle. And the harder you press, the LESS you feel." },
+{ s: "Sam", t: "Vertebral prominens at C seven T one. Spine of the scapula, T three. Inferior angle, T seven, seven up. Iliac crests, L four. Static landmark: move your hand. Mobile landmark: hold still." },
+{ s: "Alex", t: "The history gives you eighty percent of the diagnosis. Chart fixes get a single line, initials, and a date. Red flags: trauma, carcinoma, steroids, drug abuse, H I V, weight loss, constant non-mechanical pain, and bowel or bladder changes." },
+{ s: "Sam", t: "Manipulation: thrust past the physiological range, long lever. Adjustment: controlled and specific, short lever. Mobilization: within range, no thrust." },
+{ s: "Alex", t: "That's the whole exam in your ears. Listen again on the way to class, keep building that palpation bank, and good luck. You've got this!" },
+];
+
+/* ---------- Speech-only text fixes (display text is unchanged) ---------- */
+function forSpeech(t) {
+  return t
+    .replace(/\bC (one|two|six|seven)\b/g, "C-$1")
+    .replace(/\bT (one|two|three|four|five|six|seven|eight|nine|ten|twelve)\b/g, "T-$1")
+    .replace(/\bL (one|four|five)\b/g, "L-$1")
+    .replace(/\bS two\b/g, "S-two")
+    .replace(/LOC-Q-SMAT/g, "lock Q smat")
+    .replace(/—/g, ", ");
+}
+
+/* Split each line into sentences. Short utterances sound more natural,
+   and they avoid Chrome's bug where long utterances silently stop (~15 s). */
+function toChunks(t) {
+  const parts = forSpeech(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [t];
+  const out = [];
+  for (const p of parts.map(x => x.trim()).filter(Boolean)) {
+    if (out.length && out[out.length - 1].length < 25) out[out.length - 1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+const chunks = script.map(l => toChunks(l.t));
+
+/* ---------- Transcript (DOM methods only; the script array is the sole source) ---------- */
+const transcriptDiv = document.getElementById('transcript');
+script.forEach((item, index) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.id = 'line-' + index;
+  div.title = 'Click to play from here';
+  const sp = document.createElement('span');
+  sp.className = 'speaker ' + item.s.toLowerCase();
+  sp.textContent = item.s + ':';
+  div.appendChild(sp);
+  div.appendChild(document.createTextNode(' ' + item.t));
+  div.onclick = () => playFrom(index);
+  transcriptDiv.appendChild(div);
+});
+
+/* ---------- Voice selection: prefer neural / natural voices ----------
+   iOS marks voice quality in voiceURI ("premium"/"enhanced"; the default
+   variants are "compact"), never in the name — score both so iPhone lists
+   quality-first instead of alphabetically. */
+const synth = window.speechSynthesis;
+let voices = [];
+const MALE = /\b(guy|andrew|christopher|eric|davis|brian|roger|steffan|tony|jason|ryan|thomas|daniel|aaron|fred|tom|evan|nathan|liam|william|male)\b/i;
+const FEMALE = /\b(aria|jenny|emma|ava|michelle|ana|sara|jane|nancy|libby|sonia|samantha|zira|allison|susan|karen|moira|tessa|serena|natasha|clara|female)\b/i;
+
+function score(v) {
+  const n = v.name, u = (v.voiceURI || '') + ' ' + n;
+  let s = 0;
+  if (/natural|neural/i.test(n)) s += 100;
+  if (/online/i.test(n)) s += 60;
+  if (/premium/i.test(u)) s += 55;
+  if (/enhanced/i.test(u)) s += 45;
+  if (/google/i.test(n)) s += 30;
+  if (v.lang === 'en-US') s += 10;
+  if (/compact/i.test(u)) s -= 60;
+  if (/microsoft (david|zira|mark) desktop/i.test(n)) s -= 50;
+  if (/espeak/i.test(n)) s -= 80;
+  return s;
+}
+
+function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+function loadVoices() {
+  voices = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en'))
+                            .sort((a, b) => score(b) - score(a));
+  if (!voices.length) return;
+
+  const alexSel = document.getElementById('alexVoice');
+  const samSel = document.getElementById('samVoice');
+  [alexSel, samSel].forEach(sel => {
+    sel.textContent = '';
+    voices.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(o);
+    });
+  });
+
+  const males = voices.filter(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const females = voices.filter(v => FEMALE.test(v.name));
+  let alex = males[0] || voices[0];
+  let sam = females.find(v => v.name !== alex.name) || voices.find(v => v.name !== alex.name) || alex;
+
+  const savedA = load('alexVoice'), savedS = load('samVoice');
+  if (savedA && voices.some(v => v.name === savedA)) alex = voices.find(v => v.name === savedA);
+  if (savedS && voices.some(v => v.name === savedS)) sam = voices.find(v => v.name === savedS);
+
+  alexSel.value = alex.name;
+  samSel.value = sam.name;
+
+  const hasNeural = voices.some(v => score(v) >= 30);
+  document.getElementById('voiceHint').textContent = hasNeural
+    ? 'Best-sounding voices are listed first. "Natural", "Online" and "Enhanced" voices sound most human.'
+    : 'Only basic system voices were found. For much more natural voices, open this page in Microsoft Edge (Natural voices) or Chrome (Google voices).';
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.getElementById('voiceHint').textContent =
+      'iPhone: turn the silent switch off and turn up the volume. Apple does not let web pages use downloaded Premium voices, so these are the best voices available here. For real voices, use the recording player above when the episode has one.';
+  }
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+(function retryVoices(n) {        // Safari sometimes never fires onvoiceschanged
+  if (voices.length || n <= 0) return;
+  setTimeout(() => { loadVoices(); retryVoices(n - 1); }, 250);
+})(20);
+
+document.getElementById('alexVoice').onchange = e => save('alexVoice', e.target.value);
+document.getElementById('samVoice').onchange = e => save('samVoice', e.target.value);
+const rateEl = document.getElementById('rate');
+const savedRate = load('rate'); if (savedRate) rateEl.value = savedRate;
+const showRate = () => document.getElementById('rateVal').textContent = Number(rateEl.value).toFixed(2).replace(/0$/, '') + '×';
+showRate();
+rateEl.oninput = () => { save('rate', rateEl.value); showRate(); };
+
+function voiceFor(speaker) {
+  const name = document.getElementById(speaker === 'Alex' ? 'alexVoice' : 'samVoice').value;
+  return voices.find(v => v.name === name) || null;
+}
+
+/* ---------- Playback ---------- */
+let idx = 0, chunk = 0, playing = false, paused = false, runToken = 0, timer = null, currentUtterance = null, unlocked = false;
+const SENTENCE_GAP = 120;   // ms between sentences
+const SPEAKER_GAP = 450;    // ms between hosts (conversational turn-taking)
+
+function highlight(i) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('line-' + i);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function speakCurrent() {
+  if (!playing || paused) return;
+  if (idx >= script.length) {
+    playing = false;
+    document.getElementById('statusText').textContent = "Podcast Complete!";
+    return;
+  }
+  if (chunk === 0) highlight(idx);
+  const item = script[idx];
+  const u = new SpeechSynthesisUtterance(chunks[idx][chunk]);
+  currentUtterance = u;   // keep a reference: iOS Safari garbage-collects utterances and never fires onend
+  const v = voiceFor(item.s);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateEl.value);
+  u.pitch = 1;   // pitch-shifting neural voices makes them sound artificial
+  document.getElementById('statusText').textContent = 'Playing ' + (idx + 1) + ' of ' + script.length + ' (' + item.s + ')';
+
+  const token = runToken;
+  const advance = () => {
+    if (token !== runToken) return;          // ignore events from cancelled utterances
+    chunk++;
+    let gap = SENTENCE_GAP;
+    if (chunk >= chunks[idx].length) { chunk = 0; idx++; gap = SPEAKER_GAP; }
+    timer = setTimeout(speakCurrent, gap);
+  };
+  u.onend = advance;
+  u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') advance(); };
+  synth.speak(u);
+}
+
+/* Returns true if something was actually cancelled. */
+function halt() {
+  runToken++; clearTimeout(timer);
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  return busy;
+}
+
+/* iOS only allows speech that starts directly inside a tap. Speaking a
+   silent utterance on the first tap unlocks it for the rest of the session. */
+function unlockAudio() {
+  if (unlocked) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  synth.speak(u);
+  unlocked = true;
+}
+
+function playFrom(i) {
+  unlockAudio();
+  const wasBusy = halt();
+  idx = i; chunk = 0; playing = true; paused = false;
+  // Safari drops a speak() issued in the same tick as cancel(), so wait briefly when we cancelled.
+  if (wasBusy) timer = setTimeout(speakCurrent, 150);
+  else speakCurrent();
+}
+
+function startPodcast() { playFrom(0); }
+
+/* Pause by cancelling and restarting the current sentence on resume.
+   Native pause()/resume() is unreliable with Google and online voices. */
+function pauseResumePodcast() {
+  if (!playing) return;
+  if (paused) {
+    unlockAudio();
+    paused = false;
+    speakCurrent();
+  } else {
+    paused = true;
+    halt();
+    document.getElementById('statusText').textContent = "Paused";
+  }
+}
+
+function stopPodcast() {
+  halt();
+  playing = false; paused = false; idx = 0; chunk = 0;
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  document.getElementById('statusText').textContent = "Stopped";
+}
+
+/* ---------- Studio recording (m4a rendered on the Mac) ---------- */
+const epAudio = document.getElementById('epAudio');
+epAudio.addEventListener('loadedmetadata', () => { document.getElementById('audioWrap').hidden = false; });
+epAudio.addEventListener('error', () => {});            // no m4a yet: slot stays hidden
+epAudio.addEventListener('play', () => { try { stopPodcast(); } catch (e) {} });
+document.getElementById('playBtn').addEventListener('click', () => { try { epAudio.pause(); } catch (e) {} });
+</script>
+</body>
+</html>

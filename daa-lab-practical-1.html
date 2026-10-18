@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lab Practical 1 Podcast</title>
+<style>
+/* Two-host TTS podcast player; single-theme dark by design (matches the series). */
+:root { color-scheme: dark; --bg:#0f172a; --card:#1e293b; --card-hi:#334155; --ink:#f8fafc; --ink-soft:#94a3b8; --accent:#38bdf8; --accent2:#34d399; --btn:#0284c7; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); max-width: 800px; margin: 0 auto; padding-inline: 16px; padding-block: 24px; line-height: 1.6; box-sizing: border-box; }
+.player-card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 30px; border: 1px solid var(--card-hi); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+h1 { margin-top: 0; color: var(--accent); font-size: 24px; }
+.controls { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+button { background: var(--btn); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+button:hover { background: #0369a1; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .player-card { padding: 16px; } h1 { font-size: 20px; } .status { margin-left: 0; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .line { transition: none; } .line.active { transform: none; } }
+button.secondary { background: #475569; }
+.status { margin-left: auto; color: var(--ink-soft); font-size: 14px; }
+.settings { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 18px; align-items: center; font-size: 14px; color: #cbd5e1; }
+select, input[type=range] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--card-hi); border-radius: 6px; padding: 6px; }
+.hint { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.line { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: var(--card); border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+.line:hover { background: #26354d; }
+.line.active { background: var(--card-hi); border-left-color: var(--accent); transform: scale(1.01); }
+.speaker { font-weight: 700; color: var(--accent); margin-right: 8px; }
+.speaker.sam { color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="player-card">
+<h1>🎙️ Lab Practical 1 Podcast</h1>
+<p>Two-Host Audio Review: Joint Movements and the Planes They Happen In</p>
+<div id="audioWrap" hidden>
+<audio id="epAudio" controls preload="metadata" src="daa-lab-practical-1.mp4" style="width:100%"></audio>
+<div class="hint">Studio recording — real voices, keeps playing with the screen off. The buttons below use your phone's built-in voices instead.</div>
+</div>
+<div class="controls">
+<button id="playBtn" onclick="startPodcast()">▶ Play Full Podcast</button>
+<button class="secondary" onclick="pauseResumePodcast()">⏸ Pause / Resume</button>
+<button class="secondary" onclick="stopPodcast()">⏹ Stop</button>
+<span class="status" id="statusText">Ready to play</span>
+</div>
+<div class="settings">
+<label for="alexVoice">Alex voice</label><select id="alexVoice"></select>
+<label for="samVoice">Sam voice</label><select id="samVoice"></select>
+<label for="rate">Speed <span id="rateVal">1.0×</span></label><input type="range" id="rate" min="0.8" max="1.3" step="0.05" value="1.0">
+</div>
+<div class="hint" id="voiceHint"></div>
+</div>
+<div id="transcript"></div>
+
+<script>
+const script = [
+{ s: "Alex", t: "Welcome to the audio review for Lab Practical One: joint movements and planes! I'm Alex." },
+{ s: "Sam", t: "And I'm Sam. Every movement on this practical has two labels: its name, like flexion, and the plane it happens in, like sagittal. Nail both labels for every picture and you've nailed the practical." },
+{ s: "Alex", t: "Start with the planes. A plane is an imaginary flat sheet slicing through the body. Picture the body as a loaf of bread: you can slice it lengthwise into left and right, lengthwise into front and back, or crosswise into top and bottom. Each cut is a different plane." },
+{ s: "Sam", t: "The sagittal plane divides the body into left and right parts. The frontal plane, also called the coronal plane, divides it into front and back. And the transverse plane, also called horizontal or axial, divides it into upper and lower parts." },
+{ s: "Alex", t: "The memory trick: a movement happens IN a plane when the body part sweeps along that flat sheet. A forward-and-back swing stays in the sagittal plane. A sideways swing stays in the frontal plane. A twist, like turning a doorknob, stays in the transverse plane." },
+{ s: "Sam", t: "Now the seven movement words, learned as opposites. Flexion bends a joint, so the angle between the two bones gets smaller. Extension straightens it, so the angle gets larger." },
+{ s: "Alex", t: "Abduction moves a part away from the midline; adduction brings it back toward the midline. The prefix tells you: A B means away, A D means toward. Think of an abducted person being taken away." },
+{ s: "Sam", t: "Pronation rotates the forearm so the palm turns to face down or backward; its opposite is supination, palm back up. And at the ankle: dorsiflexion lifts the top of the foot toward the shin, while plantarflexion points the foot down, like standing on tiptoe." },
+{ s: "Alex", t: "Let's tour the sagittal-plane stations: elbow, hip, knee, and ankle, all moving forward and back." },
+{ s: "Sam", t: "At the elbow joint, the FOREARM moves like a door hinge. Flexion of the forearm brings the hand up toward the shoulder, making the elbow angle smaller. Extension returns it until the arm is straight. Sagittal plane." },
+{ s: "Alex", t: "At the hip joint, the THIGH swings forward and backward, like swinging your leg as you walk or kick a ball. Flexion and extension of the thigh at the hip: sagittal plane." },
+{ s: "Sam", t: "At the knee joint, the LEG, the part below the knee, swings back and forth. Flexion bends it so the heel moves up toward the buttock; extension straightens it. Also sagittal." },
+{ s: "Alex", t: "Notice the exam logic: the same word, flexion, is used at every one of these joints, because in each case the angle between two bones is changing. What differs is WHICH segment moves: forearm at the elbow, thigh at the hip, leg at the knee." },
+{ s: "Sam", t: "And the ankle gets its own vocabulary. Moving the top of the foot up toward the shin is dorsiflexion. Pointing the foot downward, like pressing a gas pedal, is plantarflexion. Both happen in the sagittal plane." },
+{ s: "Alex", t: "Memory trick: DORSI relates to the top surface of the foot, so dorsiflexion lifts that top surface toward the shin. PLANTAR relates to the sole, so plantarflexion pushes the sole down and away." },
+{ s: "Sam", t: "Quick sagittal recap. Elbow: forearm, flexion and extension. Hip: thigh, flexion and extension. Knee: leg, flexion and extension. Ankle: foot, dorsiflexion and plantarflexion. All sagittal." },
+{ s: "Alex", t: "Now the frontal plane, the side-to-side movements. Back to the hip: the thigh can also swing sideways. Abduction moves the thigh away from the midline, like stepping out to the side; adduction brings it back. Frontal, or coronal, plane." },
+{ s: "Sam", t: "Careful: the hip appears TWICE in this lab. Forward and back swings are flexion and extension in the sagittal plane. Side swings are abduction and adduction in the frontal plane. Always check the DIRECTION of the movement, not just the joint." },
+{ s: "Alex", t: "The fingers abduct and adduct too. At the metacarpophalangeal joints, the knuckles where the fingers meet the hand, digits two through four spread apart, that's abduction, and come back together, adduction. A frontal-plane movement of the hand." },
+{ s: "Sam", t: "And here's the twist: for the fingers, the reference line is NOT the body's midline. It's the middle finger. Spreading fingers away from that line is abduction; closing them back toward it is adduction." },
+{ s: "Alex", t: "Last station: the transverse plane. Pronation happens at the radioulnar joints, the joints between the radius and the ulna. The radius rolls across the ulna so the two bones form an X, and the palm turns downward." },
+{ s: "Sam", t: "It's transverse because the forearm TWISTS instead of swinging. Think of turning a doorknob, or pouring water out of a cup held in your palm. The opposite, turning the palm back up, is supination." },
+{ s: "Alex", t: "Full practical in one breath. Sagittal: elbow, hip and knee flexion and extension, plus ankle dorsiflexion and plantarflexion. Frontal: hip abduction and adduction, and digits two through four at the knuckles. Transverse: pronation of the forearm." },
+{ s: "Sam", t: "When a picture comes up, ask two questions: what direction is the part moving, and relative to what reference line? The answers give you the movement name and the plane." },
+{ s: "Alex", t: "Tap any line in the transcript to replay it. Practice the figures in your pack with Test-me mode, then go show that practical who's boss!" }
+];
+
+/* ---------- Speech-only text fixes (display text is unchanged) ---------- */
+function forSpeech(t) {
+  return t
+    .replace(/\bC (one|two|six|seven)\b/g, "C-$1")
+    .replace(/\bV two\b/g, "V-2")
+    .replace(/\bV three\b/g, "V-3")
+    .replace(/—/g, ", ");
+}
+
+/* Split each line into sentences. Short utterances sound more natural,
+   and they avoid Chrome's bug where long utterances silently stop (~15 s). */
+function toChunks(t) {
+  const parts = forSpeech(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [t];
+  const out = [];
+  for (const p of parts.map(x => x.trim()).filter(Boolean)) {
+    if (out.length && out[out.length - 1].length < 25) out[out.length - 1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+const chunks = script.map(l => toChunks(l.t));
+
+/* ---------- Transcript (DOM methods only; the script array is the sole source) ---------- */
+const transcriptDiv = document.getElementById('transcript');
+script.forEach((item, index) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.id = 'line-' + index;
+  div.title = 'Click to play from here';
+  const sp = document.createElement('span');
+  sp.className = 'speaker ' + item.s.toLowerCase();
+  sp.textContent = item.s + ':';
+  div.appendChild(sp);
+  div.appendChild(document.createTextNode(' ' + item.t));
+  div.onclick = () => playFrom(index);
+  transcriptDiv.appendChild(div);
+});
+
+/* ---------- Voice selection: prefer neural / natural voices ----------
+   iOS marks voice quality in voiceURI ("premium"/"enhanced"; the default
+   variants are "compact"), never in the name — score both so iPhone lists
+   quality-first instead of alphabetically. */
+const synth = window.speechSynthesis;
+let voices = [];
+const MALE = /\b(guy|andrew|christopher|eric|davis|brian|roger|steffan|tony|jason|ryan|thomas|daniel|aaron|fred|tom|evan|nathan|liam|william|male)\b/i;
+const FEMALE = /\b(aria|jenny|emma|ava|michelle|ana|sara|jane|nancy|libby|sonia|samantha|zira|allison|susan|karen|moira|tessa|serena|natasha|clara|female)\b/i;
+
+function score(v) {
+  const n = v.name, u = (v.voiceURI || '') + ' ' + n;
+  let s = 0;
+  if (/natural|neural/i.test(n)) s += 100;
+  if (/online/i.test(n)) s += 60;
+  if (/premium/i.test(u)) s += 55;
+  if (/enhanced/i.test(u)) s += 45;
+  if (/google/i.test(n)) s += 30;
+  if (v.lang === 'en-US') s += 10;
+  if (/compact/i.test(u)) s -= 60;
+  if (/microsoft (david|zira|mark) desktop/i.test(n)) s -= 50;
+  if (/espeak/i.test(n)) s -= 80;
+  return s;
+}
+
+function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+function loadVoices() {
+  voices = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en'))
+                            .sort((a, b) => score(b) - score(a));
+  if (!voices.length) return;
+
+  const alexSel = document.getElementById('alexVoice');
+  const samSel = document.getElementById('samVoice');
+  [alexSel, samSel].forEach(sel => {
+    sel.textContent = '';
+    voices.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(o);
+    });
+  });
+
+  const males = voices.filter(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const females = voices.filter(v => FEMALE.test(v.name));
+  let alex = males[0] || voices[0];
+  let sam = females.find(v => v.name !== alex.name) || voices.find(v => v.name !== alex.name) || alex;
+
+  const savedA = load('alexVoice'), savedS = load('samVoice');
+  if (savedA && voices.some(v => v.name === savedA)) alex = voices.find(v => v.name === savedA);
+  if (savedS && voices.some(v => v.name === savedS)) sam = voices.find(v => v.name === savedS);
+
+  alexSel.value = alex.name;
+  samSel.value = sam.name;
+
+  const hasNeural = voices.some(v => score(v) >= 30);
+  document.getElementById('voiceHint').textContent = hasNeural
+    ? 'Best-sounding voices are listed first. "Natural", "Online" and "Enhanced" voices sound most human.'
+    : 'Only basic system voices were found. For much more natural voices, open this page in Microsoft Edge (Natural voices) or Chrome (Google voices).';
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.getElementById('voiceHint').textContent =
+      'iPhone: turn the silent switch off and turn up the volume. Apple does not let web pages use downloaded Premium voices, so these are the best voices available here. For real voices, use the recording player above when the episode has one.';
+  }
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+(function retryVoices(n) {        // Safari sometimes never fires onvoiceschanged
+  if (voices.length || n <= 0) return;
+  setTimeout(() => { loadVoices(); retryVoices(n - 1); }, 250);
+})(20);
+
+document.getElementById('alexVoice').onchange = e => save('alexVoice', e.target.value);
+document.getElementById('samVoice').onchange = e => save('samVoice', e.target.value);
+const rateEl = document.getElementById('rate');
+const savedRate = load('rate'); if (savedRate) rateEl.value = savedRate;
+const showRate = () => document.getElementById('rateVal').textContent = Number(rateEl.value).toFixed(2).replace(/0$/, '') + '×';
+showRate();
+rateEl.oninput = () => { save('rate', rateEl.value); showRate(); };
+
+function voiceFor(speaker) {
+  const name = document.getElementById(speaker === 'Alex' ? 'alexVoice' : 'samVoice').value;
+  return voices.find(v => v.name === name) || null;
+}
+
+/* ---------- Playback ---------- */
+let idx = 0, chunk = 0, playing = false, paused = false, runToken = 0, timer = null, currentUtterance = null, unlocked = false;
+const SENTENCE_GAP = 120;   // ms between sentences
+const SPEAKER_GAP = 450;    // ms between hosts (conversational turn-taking)
+
+function highlight(i) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('line-' + i);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function speakCurrent() {
+  if (!playing || paused) return;
+  if (idx >= script.length) {
+    playing = false;
+    document.getElementById('statusText').textContent = "Podcast Complete!";
+    return;
+  }
+  if (chunk === 0) highlight(idx);
+  const item = script[idx];
+  const u = new SpeechSynthesisUtterance(chunks[idx][chunk]);
+  currentUtterance = u;   // keep a reference: iOS Safari garbage-collects utterances and never fires onend
+  const v = voiceFor(item.s);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateEl.value);
+  u.pitch = 1;   // pitch-shifting neural voices makes them sound artificial
+  document.getElementById('statusText').textContent = 'Playing ' + (idx + 1) + ' of ' + script.length + ' (' + item.s + ')';
+
+  const token = runToken;
+  const advance = () => {
+    if (token !== runToken) return;          // ignore events from cancelled utterances
+    chunk++;
+    let gap = SENTENCE_GAP;
+    if (chunk >= chunks[idx].length) { chunk = 0; idx++; gap = SPEAKER_GAP; }
+    timer = setTimeout(speakCurrent, gap);
+  };
+  u.onend = advance;
+  u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') advance(); };
+  synth.speak(u);
+}
+
+/* Returns true if something was actually cancelled. */
+function halt() {
+  runToken++; clearTimeout(timer);
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  return busy;
+}
+
+/* iOS only allows speech that starts directly inside a tap. Speaking a
+   silent utterance on the first tap unlocks it for the rest of the session. */
+function unlockAudio() {
+  if (unlocked) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  synth.speak(u);
+  unlocked = true;
+}
+
+function playFrom(i) {
+  unlockAudio();
+  const wasBusy = halt();
+  idx = i; chunk = 0; playing = true; paused = false;
+  // Safari drops a speak() issued in the same tick as cancel(), so wait briefly when we cancelled.
+  if (wasBusy) timer = setTimeout(speakCurrent, 150);
+  else speakCurrent();
+}
+
+function startPodcast() { playFrom(0); }
+
+/* Pause by cancelling and restarting the current sentence on resume.
+   Native pause()/resume() is unreliable with Google and online voices. */
+function pauseResumePodcast() {
+  if (!playing) return;
+  if (paused) {
+    unlockAudio();
+    paused = false;
+    speakCurrent();
+  } else {
+    paused = true;
+    halt();
+    document.getElementById('statusText').textContent = "Paused";
+  }
+}
+
+function stopPodcast() {
+  halt();
+  playing = false; paused = false; idx = 0; chunk = 0;
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  document.getElementById('statusText').textContent = "Stopped";
+}
+
+/* ---------- Studio recording (m4a rendered on the Mac) ---------- */
+const epAudio = document.getElementById('epAudio');
+epAudio.addEventListener('loadedmetadata', () => { document.getElementById('audioWrap').hidden = false; });
+epAudio.addEventListener('error', () => {});            // no m4a yet: slot stays hidden
+epAudio.addEventListener('play', () => { try { stopPodcast(); } catch (e) {} });
+document.getElementById('playBtn').addEventListener('click', () => { try { epAudio.pause(); } catch (e) {} });
+</script>
+</body>
+</html>

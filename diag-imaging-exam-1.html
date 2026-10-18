@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zanger Exam 1 Podcast</title>
+<style>
+/* Two-host TTS podcast player; single-theme dark by design (matches the series). */
+:root { color-scheme: dark; --bg:#0f172a; --card:#1e293b; --card-hi:#334155; --ink:#f8fafc; --ink-soft:#94a3b8; --accent:#38bdf8; --accent2:#34d399; --btn:#0284c7; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); max-width: 800px; margin: 0 auto; padding-inline: 16px; padding-block: 24px; line-height: 1.6; box-sizing: border-box; }
+.player-card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 30px; border: 1px solid var(--card-hi); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+h1 { margin-top: 0; color: var(--accent); font-size: 24px; }
+.controls { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+button { background: var(--btn); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+button:hover { background: #0369a1; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) { .player-card { padding: 16px; } h1 { font-size: 20px; } .status { margin-left: 0; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .line { transition: none; } .line.active { transform: none; } }
+button.secondary { background: #475569; }
+.status { margin-left: auto; color: var(--ink-soft); font-size: 14px; }
+.settings { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 18px; align-items: center; font-size: 14px; color: #cbd5e1; }
+select, input[type=range] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--card-hi); border-radius: 6px; padding: 6px; }
+.hint { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.line { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: var(--card); border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+.line:hover { background: #26354d; }
+.line.active { background: var(--card-hi); border-left-color: var(--accent); transform: scale(1.01); }
+.speaker { font-weight: 700; color: var(--accent); margin-right: 8px; }
+.speaker.sam { color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="player-card">
+<h1>🎙️ Dr. Zanger's Declassified Exam I Survival Podcast</h1>
+<p>Complete Two-Host Audio Review: Basic Radiologic Physics &amp; X-Radiation</p>
+<div id="audioWrap" hidden>
+<audio id="epAudio" controls preload="metadata" src="diag-imaging-exam-1.mp4" style="width:100%"></audio>
+<div class="hint">Studio recording — real voices, keeps playing with the screen off. The buttons below use your phone's built-in voices instead.</div>
+</div>
+<div class="controls">
+<button id="playBtn" onclick="startPodcast()">▶ Play Full Podcast</button>
+<button class="secondary" onclick="pauseResumePodcast()">⏸ Pause / Resume</button>
+<button class="secondary" onclick="stopPodcast()">⏹ Stop</button>
+<span class="status" id="statusText">Ready to play</span>
+</div>
+<div class="settings">
+<label for="alexVoice">Alex voice</label><select id="alexVoice"></select>
+<label for="samVoice">Sam voice</label><select id="samVoice"></select>
+<label for="rate">Speed <span id="rateVal">1.0×</span></label><input type="range" id="rate" min="0.8" max="1.3" step="0.05" value="1.0">
+</div>
+<div class="hint" id="voiceHint"></div>
+</div>
+<div id="transcript"></div>
+
+<script>
+const script = [
+{ s: "Alex", t: "Welcome to the complete audio edition of Dr. Zanger's Declassified Exam 1 Survival Guide! I'm Alex." },
+{ s: "Sam", t: "And I'm Sam. Today we are doing a comprehensive, cover-to-cover deep dive into Phase 1: Basic Radiologic Physics and X-Radiation. We aren't skipping a single bullet point, formula, or lab concept." },
+{ s: "Alex", t: "Let's start right at the beginning with Segment 1: Essential Concepts of Radiologic Physics. Sam, take us back to the exact date it all started." },
+{ s: "Sam", t: "Mark your calendars for November 8, 1895. That is when Wilhelm Roentgen discovered X-rays. Fundamental rule number one: X-rays are a form of electromagnetic ionizing radiation. And despite the word radiation, radiology is a very safe occupation that aids immensely in diagnosis and informing patient management." },
+{ s: "Alex", t: "Why is it so safe? Because we live by the Cardinal Principles of radiation protection: Time, Distance, and Shielding. And we always practice ALARA, which stands for keeping radiation exposures As Low As Reasonably Achievable." },
+{ s: "Sam", t: "Don't forget your SI Radiologic Units! If the exam asks: what is the SI unit of occupational radiation exposure and effective dose? Your answer is the Sievert." },
+{ s: "Alex", t: "Moving to Segment 2: Atomic Structure, Radioactivity, and Ionizing Radiation. Why do we care about electron shells?" },
+{ s: "Sam", t: "Because atomic structure and electron shells—labeled K, L, M, N from the nucleus outward—are fundamental in describing how we produce radiation in the tube and how that radiation interacts with matter in the patient. Specifically, you need to know Electron Binding Energy." },
+{ s: "Alex", t: "How does electron binding energy behave?" },
+{ s: "Sam", t: "Two rules: First, it increases with increasing proximity to the nucleus, meaning the innermost K-shell has the highest binding energy. Second, it increases with increasing atomic number. Also, remember a huge exam pearl: only K-shell interactions at the tungsten target are relevant to diagnostic imaging!" },
+{ s: "Alex", t: "And what about radioactivity and half-life?" },
+{ s: "Sam", t: "Radioactivity is the spontaneous emission of particles or energy from unstable nuclei. Radioactive half-life is the time required for radioactivity to decrease to half of its original value. And theoretically, radioactivity never actually reaches zero!" },
+{ s: "Alex", t: "And let's define ionizing radiation clearly: it is radiation with enough energy to remove an electron from an atom, creating an ion. In our world, we care about electromagnetic radiation that exists as photons—specifically, X-rays." },
+{ s: "Sam", t: "Which brings us to Segment 3: Electromagnetic Radiation, Photons, and Quantum Theory. Across the electromagnetic spectrum—from radio waves to microwaves, infrared, visible light, ultraviolet, X-rays, and gamma rays—electromagnetic energy varies in wavelength, frequency, and energy." },
+{ s: "Alex", t: "Right! While wavelength, frequency, and energy vary, the speed or velocity of this radiation is completely constant at the speed of light, represented by c. The wave equation states that the speed of light is the product of frequency and wavelength: c equals f times lambda." },
+{ s: "Sam", t: "And since c is constant, frequency and wavelength are inversely related! If frequency increases, wavelength decreases. Now, how does Quantum Theory tie into this?" },
+{ s: "Alex", t: "Quantum Theory tells us that energy is emitted or absorbed in discrete packets called quanta, rather than a continuous wave. Furthermore, photon energy is directly proportional to its frequency! Higher frequency means higher photon energy." },
+{ s: "Sam", t: "So what exactly is a photon? It's the smallest quantity, or quantum, of electromagnetic energy. It has no mass, no charge, travels at the speed of light, and exists across an energy continuum. It also exhibits Wave-Particle Duality—meaning electromagnetic energy behaves like a wave during propagation, and like a particle when interacting with matter." },
+{ s: "Alex", t: "Now let's step up to Segment 4: The X-Ray Imaging System. When a radiologic technologist stands at the operating console, what three parameters are they setting?" },
+{ s: "Sam", t: "They set kVp, mA, and exposure time. Let's break those down. Tube current is measured in milliamperes, or mA. Exposure time is measured in seconds. When you multiply mA times exposure time, you get mAs." },
+{ s: "Alex", t: "And mA—or mAs—controls quantity, which is how many X-rays are produced. Higher mAs equals higher X-ray quantity. What about kVp?" },
+{ s: "Sam", t: "Tube voltage is measured in kilovolt peak, or kVp. kVp controls quality—which means the penetrability and energy of the X-ray beam. Higher kVp equals a higher quality, more penetrating beam." },
+{ s: "Alex", t: "How does the machine generate that kind of voltage? Through transformers! Transformers are electrical devices that change the voltage and current of electricity needed by a circuit, operating via electromagnetic induction." },
+{ s: "Sam", t: "A step-up transformer increases voltage, while a step-down transformer decreases voltage. This is governed by the transformer law turns ratio: the voltage induced in each winding is proportional to the number of turns on that winding." },
+{ s: "Alex", t: "Know the two main transformers on your table: First, the Autotransformer, whose main job is to select and adjust the voltage going into the high-voltage and filament transformers. Second, the High-voltage transformer, which increases the voltage to the massive kilovolt level needed across the X-ray tube." },
+{ s: "Sam", t: "Inside the X-ray tube, we must have Direct Current, or DC, meaning electrons flow in only one direction: from cathode to anode. Converting alternating current to direct current is achieved by rectification." },
+{ s: "Alex", t: "And that leads to Voltage Ripple, which is the variation in voltage during an X-ray exposure. We want low voltage ripple because it produces a more consistent X-ray beam, improving production efficiency and exposure consistency. That's why High-Frequency generators—which have very low voltage ripple—are the modern standard." },
+{ s: "Sam", t: "Let's look inside the hardware in Segment 5: The X-Ray Tube. On the outside, the protective tube housing limits leakage radiation, prevents electric shock, and helps dissipate heat. Inside that, a glass or metal enclosure maintains an evacuated vacuum environment." },
+{ s: "Alex", t: "Then we have our two electrodes. The Cathode is the negative electrode. It contains the filaments—which are coils of tungsten wire—and the focusing cup, which confines the electron beam to a small area on the anode called the focal spot. When the filament is heated, it releases electrons through a process called Thermionic Emission." },
+{ s: "Sam", t: "Across from the cathode is the Anode, the positive electrode. The anode target is made of tungsten for three vital reasons: First, a high atomic number for efficient, high-energy X-ray production. Second, high thermal conductivity to efficiently dissipate heat. Third, a high melting point to withstand intense, repeated thermal loading." },
+{ s: "Alex", t: "Why is heat such a big deal? Because when the electron beam bombards the target, approximately 99 percent of its kinetic energy is converted into heat, and only 1 percent becomes X-ray photons!" },
+{ s: "Sam", t: "Let's talk geometry at the target. The Focal Spot is the area where electrons interact at the anode target. The Actual Focal Spot is the true geometric size where the beam hits, while the Effective Focal Spot is the projected size heading down toward the patient." },
+{ s: "Alex", t: "Which brings us to the Line-Focus Principle! By angling the anode target, we make the effective focal spot smaller than the actual focal spot. A smaller anode target angle creates a smaller effective focal spot, which gives us higher spatial resolution, while preserving a larger actual focal spot for higher heat capacity!" },
+{ s: "Sam", t: "However, a consequence of the line-focus principle is the Anode Heel Effect: X-ray intensity is greater on the cathode side of the X-ray field compared to the anode side, because photons on the anode side get partially absorbed by the angled target itself." },
+{ s: "Alex", t: "Now for Segment 6: X-Ray Production and the Emission Spectrum. That 1 percent of energy that becomes X-rays is produced in two ways: Characteristic radiation and Bremsstrahlung radiation." },
+{ s: "Sam", t: "Let's trace Characteristic Radiation first. A projectile electron flies in and ejects an inner K-shell electron from the tungsten atom. An outer shell electron—from the L or M shell—drops into that vacancy. The energy difference between those binding energies is released as an X-ray photon!" },
+{ s: "Alex", t: "Because binding energies are fixed, this released energy is a specific, discrete value—which is why characteristic radiation forms the discrete component of the X-ray emission spectrum. And since electron binding energy depends on atomic number, the atomic number of the target element is the only factor that influences characteristic radiation energy!" },
+{ s: "Sam", t: "Now contrast that with Bremsstrahlung radiation, which translates to Braking Radiation. Here, the projectile electron passes near the positively charged nucleus, slows down, and loses kinetic energy. That lost kinetic energy is emitted directly as an X-ray photon." },
+{ s: "Alex", t: "Photon energy here depends on how close the electron comes to the nucleus. Because that distance varies every time, the energy of Bremsstrahlung X-rays varies continuously—forming the continuous portion of the emission spectrum! The maximum energy a Bremsstrahlung photon can have is strictly capped by the kVp setting. So at 90 kVp, the maximum photon energy is 90 keV. Also remember: in the diagnostic range of 40 to 150 kVp, Bremsstrahlung makes up the vast majority of X-rays produced." },
+{ s: "Sam", t: "Let's review Segment 7: Factors Affecting X-Ray Intensity and Beam Quality. Intensity is the number of X-rays in the beam. First, intensity is directly proportional to mAs. Second, intensity is proportional to kVp squared. Third, distance: intensity decreases by the square of the distance, known as the Inverse Square Law." },
+{ s: "Alex", t: "And fourth is Filtration! Adding filtration removes low-energy X-rays, which decreases overall beam intensity, but makes the average X-ray energy higher and reduces patient dose." },
+{ s: "Sam", t: "How do we measure beam quality? With the Half-Value Layer, or HVL. HVL is the thickness of aluminum that reduces X-ray intensity by half. It is the best and most appropriate measure of beam quality. Anything that makes the beam more penetrating—like increasing kVp or increasing filtration—will require a thicker, higher half-value layer." },
+{ s: "Alex", t: "Now the X-ray beam leaves the tube and enters the patient in Segment 8: X-Ray Interaction with Matter. Out of the five possible interactions, diagnostic radiology cares about two: Compton Scatter and the Photoelectric Effect. And what if an X-ray passes right through without interacting?" },
+{ s: "Sam", t: "That's called Transmission! The X-ray travels straight through the patient to the image receptor, producing the dark, radiolucent areas of the image. Now, what happens in Compton Scatter?" },
+{ s: "Alex", t: "In Compton Scatter, the incident X-ray ejects an outer-shell electron and gets deflected in a different direction with lower energy. Compton scatter is unfavorable for two reasons: first, it reaches the detector as image fog, degrading radiographic contrast. Second, it scatters out of the patient to expose the radiologic technologist—making Compton scatter the main contributor to occupational radiation exposure!" },
+{ s: "Sam", t: "What influences the probability of Compton scatter? It increases with increasing mass density—how tightly matter and electrons are packed into a given volume. And while it declines with increasing X-ray energy, it declines much more slowly than the photoelectric effect." },
+{ s: "Alex", t: "Now let's look at the hero of image contrast: the Photoelectric Effect. Here, an incident X-ray ejects an inner-shell electron and is completely absorbed in the process. Because it never reaches the detector, it is responsible for the white, radiopaque areas on an X-ray, like bone." },
+{ s: "Sam", t: "Why is the Photoelectric Effect so favorable? Because it highlights tissue differences in the patient, directly contributing to radiographic contrast! Its probability increases drastically with atomic number—in fact, it is proportional to Z cubed! However, its probability declines rapidly as X-ray energy increases." },
+{ s: "Alex", t: "Putting this together gives us Differential Absorption—the difference between X-rays attenuated via Photoelectric and Compton interactions, and X-rays transmitted. This differential absorption creates the 5 basic radiographic densities. Sam, list them from most radiolucent—meaning darkest—to most radiopaque—meaning whitest!" },
+{ s: "Sam", t: "In exact order from darkest to whitest: 1. Air, 2. Fat, 3. Water or soft tissue, 4. Bone, and 5. Metal!" },
+{ s: "Alex", t: "Finally, let's wrap up with Segment 9: Labs 2 and 3—Radiographic Interpretation and Image Quality. In Lab 2, remember that an X-ray is a 2D projection of 3D anatomy, so one view is no view! A diagnostic series requires at least 2 views taken at 90 degrees to each other, called orthogonal planes. And projections are named by the path of the beam and accompanied by a radiographic marker indicating which side." },
+{ s: "Sam", t: "When describing bone lesions on an X-ray: if pathology decreases expected density—like a simple bone cyst of the calcaneus causing loss of normal trabecular bone—we call it lytic or radiolucent. If it increases expected density, we call it blastic or radiopaque. If it has both, it's mixed." },
+{ s: "Alex", t: "And in Lab 3, we master the four pillars of Radiographic Image Quality: Receptor Exposure, Contrast, Spatial Resolution, and Distortion. First, Image Receptor Exposure is how much radiation reaches the detector. Higher mAs produces more X-rays, resulting in higher receptor exposure—measured as optical density, or darkening, on screen-film." },
+{ s: "Sam", t: "Underexposure means too few X-rays reach the detector, making a film too light, or causing a grainy digital image known as Quantum Mottle or noise. Overexposure means too many X-rays reach the detector, making the film too dark." },
+{ s: "Alex", t: "Second is Contrast—the difference in density between adjacent areas. Subject contrast comes from the patient's tissue differences, while radiographic contrast is the displayed differences on the image. The key relationship: kVp is inversely related to contrast! Increasing kVp makes photons more penetrating, decreasing photoelectric absorption, which decreases contrast and creates more shades of gray." },
+{ s: "Sam", t: "Third is Spatial Resolution—the ability to distinguish small objects that are close together, or fine detail. Four things reduce spatial resolution: a larger focal spot causing penumbra, patient motion, a larger Object-to-Image Distance, or OID, and a shorter Source-to-Image Distance, or SID." },
+{ s: "Alex", t: "And fourth is Distortion, when the image does not accurately represent the anatomy. Magnification is size distortion, while foreshortening and elongation are shape distortion." },
+{ s: "Sam", t: "And that is every single concept on Dr. Zanger's Exam 1 Study Guide! Listen back as many times as you need, and go ace that exam!" }
+];
+
+/* ---------- Speech-only text fixes (display text is unchanged) ---------- */
+function forSpeech(t) {
+  return t
+    .replace(/\bDr\./g, "Doctor")
+    .replace(/\bkVp\b/g, "K V P")
+    .replace(/\bmAs\b/g, "M A S")
+    .replace(/\bmA\b/g, "M A")
+    .replace(/\bkeV\b/g, "K E V")
+    .replace(/\bSI\b/g, "S I")
+    .replace(/\bHVL\b/g, "H V L")
+    .replace(/\bOID\b/g, "O I D")
+    .replace(/\bSID\b/g, "S I D")
+    .replace(/\bDC\b/g, "D C")
+    .replace(/\b2D\b/g, "2 D")
+    .replace(/\b3D\b/g, "3 D")
+    .replace(/—/g, ", ");
+}
+
+/* Split each line into sentences. Short utterances sound more natural,
+   and they avoid Chrome's bug where long utterances silently stop (~15 s). */
+function toChunks(t) {
+  const parts = forSpeech(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [t];
+  const out = [];
+  for (const p of parts.map(x => x.trim()).filter(Boolean)) {
+    if (out.length && out[out.length - 1].length < 25) out[out.length - 1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+const chunks = script.map(l => toChunks(l.t));
+
+/* ---------- Transcript (DOM methods only; the script array is the sole source) ---------- */
+const transcriptDiv = document.getElementById('transcript');
+script.forEach((item, index) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.id = 'line-' + index;
+  div.title = 'Click to play from here';
+  const sp = document.createElement('span');
+  sp.className = 'speaker ' + item.s.toLowerCase();
+  sp.textContent = item.s + ':';
+  div.appendChild(sp);
+  div.appendChild(document.createTextNode(' ' + item.t));
+  div.onclick = () => playFrom(index);
+  transcriptDiv.appendChild(div);
+});
+
+/* ---------- Voice selection: prefer neural / natural voices ----------
+   iOS marks voice quality in voiceURI ("premium"/"enhanced"; the default
+   variants are "compact"), never in the name — score both so iPhone lists
+   quality-first instead of alphabetically. */
+const synth = window.speechSynthesis;
+let voices = [];
+const MALE = /\b(guy|andrew|christopher|eric|davis|brian|roger|steffan|tony|jason|ryan|thomas|daniel|aaron|fred|tom|evan|nathan|liam|william|male)\b/i;
+const FEMALE = /\b(aria|jenny|emma|ava|michelle|ana|sara|jane|nancy|libby|sonia|samantha|zira|allison|susan|karen|moira|tessa|serena|natasha|clara|female)\b/i;
+
+function score(v) {
+  const n = v.name, u = (v.voiceURI || '') + ' ' + n;
+  let s = 0;
+  if (/natural|neural/i.test(n)) s += 100;
+  if (/online/i.test(n)) s += 60;
+  if (/premium/i.test(u)) s += 55;
+  if (/enhanced/i.test(u)) s += 45;
+  if (/google/i.test(n)) s += 30;
+  if (v.lang === 'en-US') s += 10;
+  if (/compact/i.test(u)) s -= 60;
+  if (/microsoft (david|zira|mark) desktop/i.test(n)) s -= 50;
+  if (/espeak/i.test(n)) s -= 80;
+  return s;
+}
+
+function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+function loadVoices() {
+  voices = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en'))
+                            .sort((a, b) => score(b) - score(a));
+  if (!voices.length) return;
+
+  const alexSel = document.getElementById('alexVoice');
+  const samSel = document.getElementById('samVoice');
+  [alexSel, samSel].forEach(sel => {
+    sel.textContent = '';
+    voices.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(o);
+    });
+  });
+
+  const males = voices.filter(v => MALE.test(v.name) && !FEMALE.test(v.name));
+  const females = voices.filter(v => FEMALE.test(v.name));
+  let alex = males[0] || voices[0];
+  let sam = females.find(v => v.name !== alex.name) || voices.find(v => v.name !== alex.name) || alex;
+
+  const savedA = load('alexVoice'), savedS = load('samVoice');
+  if (savedA && voices.some(v => v.name === savedA)) alex = voices.find(v => v.name === savedA);
+  if (savedS && voices.some(v => v.name === savedS)) sam = voices.find(v => v.name === savedS);
+
+  alexSel.value = alex.name;
+  samSel.value = sam.name;
+
+  const hasNeural = voices.some(v => score(v) >= 30);
+  document.getElementById('voiceHint').textContent = hasNeural
+    ? 'Best-sounding voices are listed first. "Natural", "Online" and "Enhanced" voices sound most human.'
+    : 'Only basic system voices were found. For much more natural voices, open this page in Microsoft Edge (Natural voices) or Chrome (Google voices).';
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.getElementById('voiceHint').textContent =
+      'iPhone: turn the silent switch off and turn up the volume. Apple does not let web pages use downloaded Premium voices, so these are the best voices available here. For real voices, use the recording player above when the episode has one.';
+  }
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+(function retryVoices(n) {        // Safari sometimes never fires onvoiceschanged
+  if (voices.length || n <= 0) return;
+  setTimeout(() => { loadVoices(); retryVoices(n - 1); }, 250);
+})(20);
+
+document.getElementById('alexVoice').onchange = e => save('alexVoice', e.target.value);
+document.getElementById('samVoice').onchange = e => save('samVoice', e.target.value);
+const rateEl = document.getElementById('rate');
+const savedRate = load('rate'); if (savedRate) rateEl.value = savedRate;
+const showRate = () => document.getElementById('rateVal').textContent = Number(rateEl.value).toFixed(2).replace(/0$/, '') + '×';
+showRate();
+rateEl.oninput = () => { save('rate', rateEl.value); showRate(); };
+
+function voiceFor(speaker) {
+  const name = document.getElementById(speaker === 'Alex' ? 'alexVoice' : 'samVoice').value;
+  return voices.find(v => v.name === name) || null;
+}
+
+/* ---------- Playback ---------- */
+let idx = 0, chunk = 0, playing = false, paused = false, runToken = 0, timer = null, currentUtterance = null, unlocked = false;
+const SENTENCE_GAP = 120;   // ms between sentences
+const SPEAKER_GAP = 450;    // ms between hosts (conversational turn-taking)
+
+function highlight(i) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('line-' + i);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function speakCurrent() {
+  if (!playing || paused) return;
+  if (idx >= script.length) {
+    playing = false;
+    document.getElementById('statusText').textContent = "Podcast Complete!";
+    return;
+  }
+  if (chunk === 0) highlight(idx);
+  const item = script[idx];
+  const u = new SpeechSynthesisUtterance(chunks[idx][chunk]);
+  currentUtterance = u;   // keep a reference: iOS Safari garbage-collects utterances and never fires onend
+  const v = voiceFor(item.s);
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateEl.value);
+  u.pitch = 1;   // pitch-shifting neural voices makes them sound artificial
+  document.getElementById('statusText').textContent = 'Playing ' + (idx + 1) + ' of ' + script.length + ' (' + item.s + ')';
+
+  const token = runToken;
+  const advance = () => {
+    if (token !== runToken) return;          // ignore events from cancelled utterances
+    chunk++;
+    let gap = SENTENCE_GAP;
+    if (chunk >= chunks[idx].length) { chunk = 0; idx++; gap = SPEAKER_GAP; }
+    timer = setTimeout(speakCurrent, gap);
+  };
+  u.onend = advance;
+  u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') advance(); };
+  synth.speak(u);
+}
+
+/* Returns true if something was actually cancelled. */
+function halt() {
+  runToken++; clearTimeout(timer);
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  return busy;
+}
+
+/* iOS only allows speech that starts directly inside a tap. Speaking a
+   silent utterance on the first tap unlocks it for the rest of the session. */
+function unlockAudio() {
+  if (unlocked) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  synth.speak(u);
+  unlocked = true;
+}
+
+function playFrom(i) {
+  unlockAudio();
+  const wasBusy = halt();
+  idx = i; chunk = 0; playing = true; paused = false;
+  // Safari drops a speak() issued in the same tick as cancel(), so wait briefly when we cancelled.
+  if (wasBusy) timer = setTimeout(speakCurrent, 150);
+  else speakCurrent();
+}
+
+function startPodcast() { playFrom(0); }
+
+/* Pause by cancelling and restarting the current sentence on resume.
+   Native pause()/resume() is unreliable with Google and online voices. */
+function pauseResumePodcast() {
+  if (!playing) return;
+  if (paused) {
+    unlockAudio();
+    paused = false;
+    speakCurrent();
+  } else {
+    paused = true;
+    halt();
+    document.getElementById('statusText').textContent = "Paused";
+  }
+}
+
+function stopPodcast() {
+  halt();
+  playing = false; paused = false; idx = 0; chunk = 0;
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  document.getElementById('statusText').textContent = "Stopped";
+}
+
+/* ---------- Studio recording (m4a rendered on the Mac) ---------- */
+const epAudio = document.getElementById('epAudio');
+epAudio.addEventListener('loadedmetadata', () => { document.getElementById('audioWrap').hidden = false; });
+epAudio.addEventListener('error', () => {});            // no m4a yet: slot stays hidden
+epAudio.addEventListener('play', () => { try { stopPodcast(); } catch (e) {} });
+document.getElementById('playBtn').addEventListener('click', () => { try { epAudio.pause(); } catch (e) {} });
+</script>
+</body>
+</html>
